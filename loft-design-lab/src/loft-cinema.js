@@ -4,6 +4,7 @@ import '@fontsource/cormorant-garamond/cyrillic-500.css';
 import '@fontsource/cormorant-garamond/latin-500-italic.css';
 import '@fontsource/cormorant-garamond/cyrillic-500-italic.css';
 import { initImageMorph } from './image-morph-scene.js';
+import { initAnimationSystem } from './animation-system.js';
 
 const story = document.querySelector('.cinema-story');
 const visual = document.querySelector('.cinema-visual');
@@ -14,6 +15,7 @@ const copies = [...document.querySelectorAll('[data-cinema-copy]')];
 const pause = document.getElementById('cinemaPause');
 const chapterNumber = document.querySelector('.cinema-current');
 const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+const animationSystem = initAnimationSystem(motion);
 const images = window.__LOFT_CINEMA_IMAGES__ || ['obsidian', 'aurea', 'alba'].map(name => `/assets/images/cinema/${name}.webp`);
 
 if (story && visual && stage && fallback && pause) {
@@ -40,6 +42,7 @@ if (story && visual && stage && fallback && pause) {
       stage.dataset.currentChapter = String(chapter);
       chapters.forEach((button, index) => button.setAttribute('aria-pressed', String(index === chapter)));
       copies.forEach((copy, index) => { copy.hidden = index !== chapter; });
+      animationSystem.animateCopy(copies[chapter]);
       chapterNumber.textContent = `0${chapter + 1}`;
       fallback.src = images[chapter];
     }
@@ -100,13 +103,8 @@ if (story && visual && stage && fallback && pause) {
     stopAutomatic();
     const top = story.getBoundingClientRect().top + window.scrollY;
     const range = Math.max(1, story.offsetHeight - window.innerHeight);
-    // Browsers keep smooth-scrolling to native anchors everywhere else. Chapter
-    // selection is immediate, so the artwork and selected chapter stay in sync.
-    const root = document.documentElement;
-    const previous = root.style.scrollBehavior;
-    root.style.scrollBehavior = 'auto';
-    window.scrollTo({ top: top + range * index / 2, behavior: 'instant' });
-    root.style.scrollBehavior = previous;
+    // Immediate chapter jumps also update Lenis' internal scroll position.
+    animationSystem.scrollTo(top + range * index / 2, { immediate: true });
     applyProgress(index / 2);
   }));
 
@@ -160,6 +158,7 @@ if (story && visual && stage && fallback && pause) {
     resize.disconnect();
     visibility.disconnect();
     languageObserver.disconnect();
+    animationSystem.destroy();
     renderer?.dispose();
   });
 }
