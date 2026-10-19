@@ -1,0 +1,55 @@
+{
+  "cleanUrls": true,
+  "functions": {
+    "server.js": {
+      "includeFiles": "{assets/**,fonts/**,logo/**,*.css,favicon.ico,favicon.png,apple-touch-icon.png,robots.txt,sitemap.xml,*.html}"
+    },
+    "index.js": {
+      "includeFiles": "{assets/**,fonts/**,logo/**,*.css,favicon.ico,favicon.png,apple-touch-icon.png,robots.txt,sitemap.xml,*.html}"
+    },
+    "app.js": {
+      "includeFiles": "{assets/**,fonts/**,logo/**,*.css,favicon.ico,favicon.png,apple-touch-icon.png,robots.txt,sitemap.xml,*.html}"
+    },
+    "api/*.js": {
+      "maxDuration": 15
+    }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=2592000, stale-while-revalidate=86400" }
+      ]
+    },
+    {
+      "source": "/fonts/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/logo/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=2592000, stale-while-revalidate=86400" }
+      ]
+    },
+    {
+      "source": "/styles.css",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }
+      ]
+    }
+  ],
+  "rewrites": [
+    { "source": "/order", "destination": "/order.html" },
+    { "source": "/booking-stars", "destination": "/booking-stars.html" },
+    { "source": "/production", "destination": "/production.html" },
+    { "source": "/smm", "destination": "/smm.html" },
+    { "source": "/branding", "destination": "/branding.html" },
+    { "source": "/web", "destination": "/web.html" }
+  ]
+}

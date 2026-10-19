@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Заказать проект | LOFT CREATIVE HOUSE — Бриф на Маркетинг, Видео и Разработку</title>
+  <meta name="description" content="Оставьте заявку на проект в LOFT CREATIVE HOUSE: видеопродакшн, комплексный SMM, разработка айдентики, брендинг и создание веб-сайтов в Душанбе.">
+  <meta name="robots" content="noindex, nofollow">
+<!-- Open Graph -->
+  <meta property="og:type" content="website">
+<meta property="og:title" content="Заказать проект | LOFT CREATIVE HOUSE">
+  <meta property="og:description" content="Заполните бриф на видеопродакшн, SMM, разработку айдентики или веб-сайта в Душанбе.">
+  <meta property="og:image" content="https://www.loft.tj/assets/images/og.jpg">
+  <meta property="og:site_name" content="LOFT CREATIVE HOUSE">
+  <meta property="og:locale" content="ru_RU">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://www.loft.tj/order">
+  <meta name="twitter:title" content="Заказать проект | LOFT CREATIVE HOUSE">
+  <meta name="twitter:description" content="Заполните бриф на видеопродакшн, SMM, разработку айдентики или веб-сайта в Душанбе.">
+  <meta name="twitter:image" content="https://www.loft.tj/assets/images/og.jpg">
+
+  <!-- Schema.org Microdata -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ContactPage",
+    "name": "Заказать проект | LOFT CREATIVE HOUSE",
+    "url": "https://www.loft.tj/order",
+    "description": "Форма брифа и заказа услуг креативного агентства LOFT CREATIVE HOUSE.",
+    "breadcrumb": {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Главная",
+          "item": "https://www.loft.tj/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Заказ проекта",
+          "item": "https://www.loft.tj/order"
+        }
+      ]
+    }
+  }
+  </script>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico?v=3">
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=3">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png?v=3">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16x16.png?v=3">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=3">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    html[lang="en"] .lang-ru { display: none !important; }
+    html[lang="ru"] .lang-en { display: none !important; }
+  </style>
+  <noscript>
+    <style>
+      .reveal {
+        opacity: 1 !important;
+        transform: none !important;
+      }
+    </style>
+  </noscript>
+  <style>
+    /* Custom Form Layout Styling */
+    .order-container {
+      max-width: 800px;
+      margin: 160px auto 100px;
+      padding: 0 24px;
+    }
+
+    .form-header {
+      margin-bottom: 64px;
+      text-align: left;
+    }
+
+    .form-title {
+      font-family: var(--serif);
+      font-size: clamp(36px, 5vw, 64px);
+      font-weight: 300;
+      line-height: 1.1;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+    }
+
+    .form-subtitle {
+      font-family: var(--sans);
+      font-size: 14px;
+      color: var(--dim);
+      font-weight: 300;
+      line-height: 1.6;
+    }
+
+    /* Slick Inputs */
+    .input-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      margin-bottom: 48px;
+    }
+
+    @media (max-width: 768px) {
+      .input-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .form-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--subtle);
+      color: var(--ivory);
+      font-family: var(--sans);
+      font-size: 15px;
+      padding: 12px 0;
+      outline: none;
+      transition: border-color 0.4s var(--ease);
+    }
+
+    .form-input:focus {
+      border-bottom-color: var(--ivory);
+    }
+
+    .form-label {
+      position: absolute;
+      left: 0;
+      top: 12px;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      pointer-events: none;
+      transition: all 0.4s var(--ease);
+    }
+
+    /* Floating labels logic */
+    .form-input:focus ~ .form-label,
+    .form-input:not(:placeholder-shown) ~ .form-label {
+      top: -12px;
+      font-size: 9px;
+      color: var(--cream);
+    }
+
+    /* Section divider */
+    .form-section-title {
+      font-size: 11px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--mid);
+      padding-bottom: 12px;
+    }
+
+    /* Activity Chips (Radio Group) */
+    .chips-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 48px;
+    }
+
+    .chip-item {
+      position: relative;
+    }
+
+    .chip-item input[type="radio"],
+    .chip-item input[type="checkbox"] {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .chip-label {
+      display: inline-block;
+      padding: 12px 24px;
+      border: 1px solid var(--subtle);
+      color: var(--dim);
+      font-size: 12px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.4s var(--ease);
+      background: transparent;
+      user-select: none;
+    }
+
+    .chip-label:hover {
+      border-color: var(--warm);
+      color: var(--ivory);
+    }
+
+    .chip-item input[type="radio"]:checked + .chip-label,
+    .chip-item input[type="checkbox"]:checked + .chip-label {
+      background: var(--ivory);
+      color: var(--black);
+      border-color: var(--ivory);
+    }
+
+    /* Custom input for other activity */
+    .custom-activity-wrapper {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s var(--ease);
+      margin-bottom: 48px;
+    }
+
+    .custom-activity-wrapper.active {
+      max-height: 80px;
+    }
+
+    /* Services Grid (Checkboxes) */
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+      margin-bottom: 48px;
+    }
+
+    /* Message textarea */
+    .textarea-wrapper {
+      margin-bottom: 56px;
+    }
+
+    .form-textarea {
+      width: 100%;
+      height: 120px;
+      background: transparent;
+      border: 1px solid var(--subtle);
+      color: var(--ivory);
+      font-family: var(--sans);
+      font-size: 14px;
+      padding: 16px;
+      outline: none;
+      resize: none;
+      transition: border-color 0.4s var(--ease);
+    }
+
+    .form-textarea:focus {
+      border-color: var(--ivory);
+    }
+
+    /* Submit Button & Loader */
+    .submit-container {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .form-btn {
+      min-width: 240px;
+      justify-content: center;
+      position: relative;
+    }
+
+    .btn-loader {
+      display: none;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-top-color: var(--ivory);
+      border-radius: 0;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .form-btn:hover .btn-loader {
+      border-top-color: var(--black);
+    }
+
+    .form-btn.loading {
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    .form-btn.loading .btn-loader {
+      display: inline-block;
+    }
+
+    .form-btn.loading .btn-text {
+      display: none;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Success Overlay Card */
+    .success-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(12, 12, 12, 0.98);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.6s var(--ease);
+    }
+
+    .success-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .success-card {
+      text-align: center;
+      max-width: 480px;
+      padding: 48px 24px;
+      transform: translateY(30px);
+      transition: transform 0.6s var(--ease);
+    }
+
+    .success-overlay.active .success-card {
+      transform: translateY(0);
+    }
+
+    .success-icon {
+      font-size: 64px;
+      margin-bottom: 32px;
+      display: inline-block;
+      animation: heartBeat 1.2s var(--ease) infinite alternate;
+    }
+
+    .success-title {
+      font-family: var(--serif);
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 300;
+      margin-bottom: 16px;
+    }
+
+    .success-text {
+      font-size: 14px;
+      color: var(--dim);
+      margin-bottom: 40px;
+      line-height: 1.7;
+    }
+
+    @keyframes heartBeat {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.08); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loader -->
+  <div class="loader" id="loader">
+    <div class="loader-line"></div>
+    <span class="loader-mark">Loft Creative House</span>
+  </div>
+
+  <!-- Nav -->
+  <nav class="nav" id="nav" style="background: rgba(12, 12, 12, 0.92); backdrop-filter: blur(24px);">
+    <a class='nav-logo' href='/'>
+      <img src="assets/images/logo_rect_white.png" alt="Loft Creative House" style="height: 42px; width: auto; display: block; filter: brightness(1.1); transition: opacity 0.4s;">
+    </a>
+    <div style="display: flex; align-items: center;">
+      <ul class="nav-links">
+        <li><a href='/booking-stars'><span class="lang lang-en">Booking</span><span class="lang lang-ru">Букинг</span></a></li>
+        <li><a href='/#pricing'><span class="lang lang-en">Pricing</span><span class="lang lang-ru">Тарифы</span></a></li>
+        <li><a href='/#work'><span class="lang lang-en">Work</span><span class="lang lang-ru">Работы</span></a></li>
+        <li><a href='/#clients'><span class="lang lang-en">Clients</span><span class="lang lang-ru">Клиенты</span></a></li>
+        <li><a href='/#artists'><span class="lang lang-en">People</span><span class="lang lang-ru">Люди</span></a></li>
+        <li><a href='/#contact'><span class="lang lang-en">Contact</span><span class="lang lang-ru">Контакты</span></a></li>
+      </ul>
+      <div class="lang-selector desktop-lang">
+        <button class="lang-btn active" onclick="setLang('en')" id="btn-en">EN</button>
+        <button class="lang-btn" onclick="setLang('ru')" id="btn-ru">RU</button>
+      </div>
+    </div>
+    <button class="nav-burger" id="burger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <!-- Mobile Menu -->
+  <div class="mobile-menu" id="mobileMenu">
+    <ul>
+      <li><a href='/booking-stars' onclick='closeMobile()'><span class="lang lang-en">Booking</span><span class="lang lang-ru">Букинг</span></a></li>
+      <li><a href='/#pricing' onclick='closeMobile()'><span class="lang lang-en">Pricing</span><span class="lang lang-ru">Тарифы</span></a></li>
+      <li><a href='/#work' onclick='closeMobile()'><span class="lang lang-en">Work</span><span class="lang lang-ru">Работы</span></a></li>
+      <li><a href='/#clients' onclick='closeMobile()'><span class="lang lang-en">Clients</span><span class="lang lang-ru">Клиенты</span></a></li>
+      <li><a href='/#artists' onclick='closeMobile()'><span class="lang lang-en">People</span><span class="lang lang-ru">Люди</span></a></li>
+      <li><a href='/#contact' onclick='closeMobile()'><span class="lang lang-en">Contact</span><span class="lang lang-ru">Контакты</span></a></li>
+      <li>
+        <div class="lang-selector mobile-lang">
+          <button class="lang-btn active" onclick="setLang('en')" id="btn-en-mob">EN</button>
+          <button class="lang-btn" onclick="setLang('ru')" id="btn-ru-mob">RU</button>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Order Form Section -->
+  <main class="order-container">
+    <div class="form-header reveal">
+      <h1 class="form-title">
+        <span class="lang lang-en">Tell us about your <em>project</em></span>
+        <span class="lang lang-ru">Расскажите о своем <em>проекте</em></span>
+      </h1>
+      <p class="form-subtitle">
+        <span class="lang lang-en">Tell us about your brand. Fill out the brief below, and our team will get in touch with you shortly.</span>
+        <span class="lang lang-ru">Расскажите нам о вашем бренде. Заполните бриф ниже, и наша команда свяжется с вами в ближайшее время.</span>
+      </p>
+    </div>
+
+    <form id="orderForm" class="reveal reveal-d1" onsubmit="submitForm(event)">
+      
+      <!-- Part 1: Contact Details -->
+      <h2 class="form-section-title">
+        <span class="lang lang-en">01. Contact Information</span>
+        <span class="lang lang-ru">01. Контактная информация</span>
+      </h2>
+      
+      <div class="input-grid">
+        <div class="input-wrapper">
+          <input type="text" id="firstName" name="firstName" class="form-input" placeholder=" " required>
+          <label for="firstName" class="form-label">
+            <span class="lang lang-en">First Name *</span>
+            <span class="lang lang-ru">Имя *</span>
+          </label>
+        </div>
+        <div class="input-wrapper">
+          <input type="text" id="lastName" name="lastName" class="form-input" placeholder=" ">
+          <label for="lastName" class="form-label">
+            <span class="lang lang-en">Last Name</span>
+            <span class="lang lang-ru">Фамилия</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="input-grid" style="margin-bottom: 64px;">
+        <div class="input-wrapper">
+          <input type="tel" id="phone" name="phone" class="form-input" placeholder=" " required>
+          <label for="phone" class="form-label">
+            <span class="lang lang-en">Phone Number *</span>
+            <span class="lang lang-ru">Номер телефона *</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Part 2: Activity Type (Radio Buttons) -->
+      <h2 class="form-section-title">
+        <span class="lang lang-en">02. Business / Activity Type</span>
+        <span class="lang lang-ru">02. Сфера деятельности</span>
+      </h2>
+      
+      <div class="chips-group">
+        <div class="chip-item">
+          <input type="radio" id="act-restaurant" name="activityType" value="Restaurant / Cafe" onclick="toggleCustomActivity(false)" required>
+          <label for="act-restaurant" class="chip-label">
+            <span class="lang lang-en">Restaurant / Cafe</span>
+            <span class="lang lang-ru">Ресторан / Кафе</span>
+          </label>
+        </div>
+        <div class="chip-item">
+          <input type="radio" id="act-shop" name="activityType" value="E-commerce / Retail" onclick="toggleCustomActivity(false)">
+          <label for="act-shop" class="chip-label">
+            <span class="lang lang-en">E-commerce / Shop</span>
+            <span class="lang lang-ru">Магазин / Ритейл</span>
+          </label>
+        </div>
+        <div class="chip-item">
+          <input type="radio" id="act-hotel" name="activityType" value="Hotel / Real Estate" onclick="toggleCustomActivity(false)">
+          <label for="act-hotel" class="chip-label">
+            <span class="lang lang-en">Hotel / Real Estate</span>
+            <span class="lang lang-ru">Отель / Недвижимость</span>
+          </label>
+        </div>
+        <div class="chip-item">
+          <input type="radio" id="act-agency" name="activityType" value="Services / Agency" onclick="toggleCustomActivity(false)">
+          <label for="act-agency" class="chip-label">
+            <span class="lang lang-en">Services / Agency</span>
+            <span class="lang lang-ru">Услуги / Агентство</span>
+          </label>
+        </div>
+        <div class="chip-item">
+          <input type="radio" id="act-personal" name="activityType" value="Personal Brand" onclick="toggleCustomActivity(false)">
+          <label for="act-personal" class="chip-label">
+            <span class="lang lang-en">Personal Brand</span>
+            <span class="lang lang-ru">Личный бренд</span>
+          </label>
+        </div>
+        <div class="chip-item">
+          <input type="radio" id="act-other" name="activityType" value="Other" onclick="toggleCustomActivity(true)">
+          <label for="act-other" class="chip-label">
+            <span class="lang lang-en">Other</span>
+            <span class="lang lang-ru">Другое</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Hidden custom activity input -->
+      <div class="custom-activity-wrapper" id="customActivityWrapper">
+        <div class="input-wrapper">
+          <input type="text" id="customActivity" name="customActivity" class="form-input" placeholder=" ">
+          <label for="customActivity" class="form-label">
+            <span class="lang lang-en">Specify your activity type</span>
+            <span class="lang lang-ru">Укажите сферу деятельности</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Part 3: Service Categories (Checkboxes) -->
+      <h2 class="form-section-title" style="margin-top: 24px;">
+        <span class="lang lang-en">03. Services Required (Select one or more)</span>
+        <span class="lang lang-ru">03. Необходимые услуги (Выберите одну или несколько)</span>
+      </h2>
+
+      <div class="services-grid">
+        <div class="chip-item">
+          <input type="checkbox" id="srv-smm" name="services" value="SMM & Marketing">
+          <label for="srv-smm" class="chip-label" style="display: block; text-align: center;">
+            <span class="lang lang-en">Marketing & SMM</span>
+            <span class="lang lang-ru">Маркетинг и SMM</span>
+          </label>
+        </div>
+        <div class="chip-item">
+          <input type="checkbox" id="srv-event" name="services" value="Events Organization">
+          <label for="srv-event" class="chip-label" style="display: block; text-align: center;">
+            <span class="lang lang-en">Events Organization</span>
+            <span class="lang lang-ru">Организация ивентов</span>
+          </label>
+        </div>
+        <div class="chip-item">
+          <input type="checkbox" id="srv-site" name="services" value="Website Development">
+          <label for="srv-site" class="chip-label" style="display: block; text-align: center;">
+            <span class="lang lang-en">Web Development</span>
+            <span class="lang lang-ru">Разработка Сайтов</span>
+          </label>
+        </div>
+        <div class="chip-item">
+          <input type="checkbox" id="srv-app" name="services" value="Mobile Application">
+          <label for="srv-app" class="chip-label" style="display: block; text-align: center;">
+            <span class="lang lang-en">Mobile App</span>
+            <span class="lang lang-ru">Мобильное приложение</span>
+          </label>
+        </div>
+        <div class="chip-item">
+          <input type="checkbox" id="srv-video" name="services" value="Video Production">
+          <label for="srv-video" class="chip-label" style="display: block; text-align: center;">
+            <span class="lang lang-en">Video Production</span>
+            <span class="lang lang-ru">Видеосъемка</span>
+          </label>
+        </div>
+        <div class="chip-item">
+          <input type="checkbox" id="srv-photo" name="services" value="Photo Production">
+          <label for="srv-photo" class="chip-label" style="display: block; text-align: center;">
+            <span class="lang lang-en">Photography</span>
+            <span class="lang lang-ru">Фотосъемка</span>
+          </label>
+        </div>
+        <div class="chip-item">
+          <input type="checkbox" id="srv-creative" name="services" value="Creative Direction">
+          <label for="srv-creative" class="chip-label" style="display: block; text-align: center;">
+            <span class="lang lang-en">Brand Design & Style</span>
+            <span class="lang lang-ru">Стиль и упаковка бренда</span>
+          </label>
+        </div>
+        <div class="chip-item">
+          <input type="checkbox" id="srv-brand-seo" name="services" value="Branding & SEO">
+          <label for="srv-brand-seo" class="chip-label" style="display: block; text-align: center;">
+            <span class="lang lang-en">Branding & SEO</span>
+            <span class="lang lang-ru">Брендинг & SEO</span>
+          </label>
+        </div>
+        <div class="chip-item">
+          <input type="checkbox" id="srv-ai" name="services" value="AI & Digital Solutions">
+          <label for="srv-ai" class="chip-label" style="display: block; text-align: center;">
+            <span class="lang lang-en">AI & Digital</span>
+            <span class="lang lang-ru">AI и Цифровые Технологии</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Part 4: Project Brief Description -->
+      <h2 class="form-section-title">
+        <span class="lang lang-en">04. Project Brief (Optional)</span>
+        <span class="lang lang-ru">04. Описание проекта (Необязательно)</span>
+      </h2>
+
+      <div class="textarea-wrapper">
+        <textarea id="message" name="message" class="form-textarea" placeholder=""></textarea>
+      </div>
+
+      <!-- Part 5: Submit -->
+      <div class="submit-container">
+        <button type="submit" class="btn form-btn" id="submitBtn">
+          <span class="btn-text lang lang-en">Submit Brief</span>
+          <span class="btn-text lang lang-ru">Отправить бриф</span>
+          <div class="btn-loader"></div>
+          <span class="btn-line"></span>
+        </button>
+      </div>
+
+    </form>
+  </main>
+
+  <!-- Success Modal -->
+  <div class="success-overlay" id="successOverlay">
+    <div class="success-card">
+      <span class="success-icon">🖤</span>
+      <h2 class="success-title">
+        <span class="lang lang-en">Thank You!</span>
+        <span class="lang lang-ru">Спасибо!</span>
+      </h2>
+      <p class="success-text">
+        <span class="lang lang-en">Your project brief has been received. Our team will analyze your requirements and get back to you within 24 hours.</span>
+        <span class="lang lang-ru">Ваш бриф успешно получен. Наша команда проанализирует ваши требования и свяжется с вами в течение 24 часов.</span>
+      </p>
+      <a class='btn' href='/' style='width: 100%; justify-content: center;'>
+        <span class="lang lang-en">Back to Home</span>
+        <span class="lang lang-ru">На главную</span>
+        <span class="btn-line"></span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-grid">
+      <div>
+        <a href="/" style="display: inline-block; margin-bottom: 24px;">
+          <img src="assets/images/logo_rect_white.png" alt="Loft Creative House" style="height: 44px; width: auto; display: block; opacity: 0.95;">
+        </a>
+        <p class="footer-brand-sub">
+          <span class="lang lang-en">A next-generation media ecosystem from Central Asia. Film, music, photography, technology, culture.</span>
+          <span class="lang lang-ru">Медиа экосистема нового поколения из Центральной Азии. Кино, музыка, фотография, технологии, культура.</span>
+        </p>
+      </div>
+      <div class="footer-col">
+        <h4>
+          <span class="lang lang-en">Navigate</span>
+          <span class="lang lang-ru">Навигация</span>
+        </h4>
+        <ul>
+          <li><a href='/#about'><span class="lang lang-en">About</span><span class="lang lang-ru">О нас</span></a></li>
+          <li><a href='/#disciplines'><span class="lang lang-en">Disciplines</span><span class="lang lang-ru">Направления</span></a></li>
+          <li><a href='/#work'><span class="lang lang-en">Work</span><span class="lang lang-ru">Работы</span></a></li>
+          <li><a href='/#clients'><span class="lang lang-en">Clients</span><span class="lang lang-ru">Клиенты</span></a></li>
+          <li><a href='/#artists'><span class="lang lang-en">People</span><span class="lang lang-ru">Люди</span></a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>
+          <span class="lang lang-en">Disciplines</span>
+          <span class="lang lang-ru">Направления</span>
+        </h4>
+        <ul>
+          <li><a href='/#disciplines'><span class="lang lang-en">Music</span><span class="lang lang-ru">Музыка</span></a></li>
+          <li><a href='/#disciplines'><span class="lang lang-en">Photography</span><span class="lang lang-ru">Фотография</span></a></li>
+          <li><a href='/#disciplines'><span class="lang lang-en">AI & Digital</span><span class="lang lang-ru">AI и Цифровые Технологии</span></a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>
+          <span class="lang lang-en">Contact</span>
+          <span class="lang lang-ru">Контакты</span>
+        </h4>
+        <ul>
+          <li><a href="mailto:hello@loftmedia.studio">hello@loftmedia.studio</a></li>
+          <li><a href="#"><span class="lang lang-en">Central Asia</span><span class="lang lang-ru">Центральная Азия</span></a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p class="footer-copy">&copy; 2026 LOFT CREATIVE HOUSE</p>
+      <div class="footer-socials">
+        <a href="#" target="_blank" rel="noopener noreferrer">Instagram</a>
+        <a href="#" target="_blank" rel="noopener noreferrer">Telegram</a>
+        <a href="#" target="_blank" rel="noopener noreferrer">YouTube</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Language logic
+    function setLang(lang) {
+      document.documentElement.lang = lang;
+      
+      const btnEn = document.getElementById('btn-en');
+      const btnRu = document.getElementById('btn-ru');
+      const btnEnMob = document.getElementById('btn-en-mob');
+      const btnRuMob = document.getElementById('btn-ru-mob');
+      
+      if(btnEn) btnEn.classList.toggle('active', lang === 'en');
+      if(btnRu) btnRu.classList.toggle('active', lang === 'ru');
+      if(btnEnMob) btnEnMob.classList.toggle('active', lang === 'en');
+      if(btnRuMob) btnRuMob.classList.toggle('active', lang === 'ru');
+      
+      localStorage.setItem('lang', lang);
+
+      // Adjust placeholder texts based on language
+      const msgTextarea = document.getElementById('message');
+      if (msgTextarea) {
+        if (lang === 'ru') {
+          msgTextarea.placeholder = 'Опишите ваши задачи, сроки, бюджет или любые особые требования...';
+        } else {
+          msgTextarea.placeholder = 'Describe your goals, timeline, budget, or any specific requirements...';
+        }
+      }
+    }
+
+    const savedLang = localStorage.getItem('lang') || 'en';
+    setLang(savedLang);
+
+    // Parse URL query parameters to auto-select form options
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const pkg = urlParams.get('package');
+      const service = urlParams.get('service');
+      const detailsArea = document.getElementById('message');
+      
+      const lang = document.documentElement.lang || 'en';
+      
+      if (pkg) {
+        // Auto-check corresponding service checkbox based on the package
+        if (pkg.startsWith('smm-')) {
+          const smmCheckbox = document.getElementById('srv-smm');
+          if (smmCheckbox) smmCheckbox.checked = true;
+        } else if (pkg.startsWith('event-')) {
+          const eventCheckbox = document.getElementById('srv-event');
+          if (eventCheckbox) eventCheckbox.checked = true;
+        } else if (pkg.startsWith('brand-')) {
+          const brandCheckbox = document.getElementById('srv-brand-seo');
+          if (brandCheckbox) brandCheckbox.checked = true;
+        }
+        
+        // Populate package details
+        const packages = {
+          'smm-light': {
+            en: 'Interested in SMM LIGHT Tariff (6 000 c/mo). Includes: 5 Reels, 5 Photos, 30 Stories, Cover design, Targeted ad setup, End of month report.',
+            ru: 'Интересует тариф SMM LIGHT (6 000 с/мес). Включает: 5 Reels, 5 фото, 30 Stories, дизайн обложек, настройка таргета, отчет в конце месяца.'
+          },
+          'smm-standard': {
+            en: 'Interested in SMM STANDARD Tariff (8 000 c/mo). Includes: 8 Reels, 8 Photos, 30 Stories, Cover design, Targeted ad setup, End of month report.',
+            ru: 'Интересует тариф SMM STANDARD (8 000 с/мес). Включает: 8 Reels, 8 фото, 30 Stories, дизайн обложек, настройка таргета, отчет в конце месяца.'
+          },
+          'smm-premium': {
+            en: 'Interested in SMM PREMIUM Tariff (12 000 c/mo). Includes: 12 Reels, 10 Photos, 30 Stories, Cover design, Targeted ad setup, End of month report, Influence marketing.',
+            ru: 'Интересует тариф SMM PREMIUM (12 000 с/мес). Включает: 12 Reels, 10 фото, 30 Stories, дизайн обложек, настройка таргета, отчет в конце месяца, инфлюенс маркетинг.'
+          },
+          'smm-light-plus': {
+            en: 'Interested in SMM LIGHT+ Tariff (6 000 c/mo). Includes: 6 Reels, 6 Posts, 30 Stories.',
+            ru: 'Интересует тариф SMM LIGHT+ (6 000 с/мес). Включает: 6 Reels, 6 публикаций, 30 Stories.'
+          },
+          'smm-standard-plus': {
+            en: 'Interested in SMM STANDARD+ Tariff (9 000 c/mo). Includes: 10 Reels, 8 Posts, 35 Stories.',
+            ru: 'Интересует тариф SMM STANDARD+ (9 000 с/мес). Включает: 10 Reels, 8 публикаций, 35 Stories.'
+          },
+          'event-start': {
+            en: 'Interested in EVENT START Tariff (From 11 000 c/event). Includes: Script & timing, Technical support (up to 50 people), Event day coordination (1 manager), Photographer & videographer services, Host, DJ, Budget estimation report.',
+            ru: 'Интересует тариф EVENT START (От 11 000 с/мероприятие). Включает: Написание сценария и тайминга, Техническое обеспечение (до 50 чел.), Координация в день мероприятия (1 менеджер), Работа фотографа и видеографа, Ведущий, DJ, Отчет по смете.'
+          },
+          'event-base': {
+            en: 'Interested in EVENT BASE Tariff (From 31 000 c/event). Includes: Custom concept & script, Premium venue selection (up to 5 options), Expanded equipment (sound & light up to 100 people), Turnkey event coordination, Event day coordination (1 manager), Photographer & videographer, Host, DJ, Artists performance, Budget administration & reports.',
+            ru: 'Интересует тариф EVENT BASE (От 31 000 с/мероприятие). Включает: Индивидуальная концепция и детальный сценарий, Подбор премиум-площадок (до 5 вариантов), Расширенное оборудование (звук и свет до 100 чел.), Координация события под ключ, Координация в день мероприятия (1 менеджер), Работа фотографа и видеографа, Ведущий, DJ, Выступление артистов, Полное администрирование бюджета и отчетность.'
+          },
+          'event-vip': {
+            en: 'Interested in EVENT VIP Tariff (From 50 000 c/event). Includes: Exclusive directing & show program, Access to closed & unique locations, Complex technical production (scenography, LED screens, sound design), Dedicated coordination team (from 5 people), Booking headliners & artists, Full media production.',
+            ru: 'Интересует тариф EVENT VIP (От 50 000 с/мероприятие). Включает: Эксклюзивная режиссура и шоу-программа, Работа с закрытыми и нестандартными локациями, Сложный технический продакшн (сценография, LED-экраны, саунд-дизайн), Выделенная команда организаторов (от 5 человек), Букинг хедлайнеров и артистов, Полный медиа-продакшн.'
+          },
+          'brand-start': {
+            en: 'Interested in BRANDING & SEO START Tariff (8 500 c). Includes: Market & competitor express audit, Logo (3 concepts) & basic identity, Landing page (up to 5 blocks), Baseline SEO setup, Google Maps & 2GIS setup, Telegram lead alerts.',
+            ru: 'Интересует тариф БРЕНДИНГ & SEO "СТАРТ" (8 500 с). Включает: Экспресс-аудит ниши и конкурентов, Логотип (3 концепта) и базовый стиль, Конверсионный Landing Page, Базовое SEO, Google Maps и 2GIS, Telegram-уведомления.'
+          },
+          'brand-business': {
+            en: 'Interested in BRANDING & SEO BUSINESS PRO Tariff (17 500 c). Includes: Deep market audit & SWOT, Complete Brandbook & identity, Corporate website with interactive calculator, Advanced SEO (TOP-3 Google/Yandex), 2GIS PRO & Google Maps (4.8★), Interactive proposal (PDF + Web), CRM & Telegram bot.',
+            ru: 'Интересует тариф БРЕНДИНГ & SEO "BUSINESS PRO" (17 500 с). Включает: Глубокий аудит рынка и SWOT, Полный Brandbook и айдентика, Сайт с интерактивным калькулятором, Продвинутое SEO (ТОП-3 Google/Яндекс), 2GIS PRO и Google Maps (4.8★), Интерактивное КП (PDF + Web), CRM и Telegram-бот.'
+          },
+          'brand-ecosystem': {
+            en: 'Interested in BRANDING & SEO ECOSYSTEM 360° Tariff (32 000 c). Includes: 360° Strategic audit & positioning, Flagship Brandbook 360° (50+ pages, merch, fleet), High-load Web Portal / Catalog, Telegram Web App (TWA), Aggressive SEO (TOP-1), SERM & PR media coverage, Dedicated Art Director & 24/7 support.',
+            ru: 'Интересует тариф БРЕНДИНГ & SEO "ECOSYSTEM 360°" (32 000 с). Включает: 360° Стратегический аудит и позиционирование, Флагманский Brandbook 360° (50+ стр., мерч, авто), Веб-портал с каталогом, Telegram Web App (TWA), Агрессивное SEO (ТОП-1), SERM и PR-публикации, Персональный арт-директор 24/7.'
+          }
+        };
+        
+        if (packages[pkg]) {
+          detailsArea.value = packages[pkg][lang] || packages[pkg]['en'];
+        }
+      } else if (service) {
+        const servicesMap = {
+          'landing-page': {
+            checkboxId: 'srv-site',
+            text: {
+              en: 'Interested in Landing Page Development (5 000 c).',
+              ru: 'Интересует разработка Landing Page (5 000 с).'
+            }
+          },
+          'full-website': {
+            checkboxId: 'srv-site',
+            text: {
+              en: 'Interested in Full Website Development (10 000 c).',
+              ru: 'Интересует разработка полноценного сайта (10 000 с).'
+            }
+          },
+          'telegram-bot': {
+            checkboxId: 'srv-ai',
+            text: {
+              en: 'Interested in Telegram Bot & Automation (5 000 c).',
+              ru: 'Интересует создание Telegram-бота и автоматизация (5 000 с).'
+            }
+          },
+          'mobile-app': {
+            checkboxId: 'srv-app',
+            text: {
+              en: 'Interested in Mobile Application Development (iOS / Android) (From 20 000 c).',
+              ru: 'Интересует разработка мобильного приложения (iOS / Android) (От 20 000 с).'
+            }
+          },
+          'model': {
+            checkboxId: 'srv-photo',
+            text: {
+              en: 'Interested in Model booking for shoots (1 000 c/hour).',
+              ru: 'Интересует заказ модели для съёмок (1 000 с / час).'
+            }
+          },
+          'booking': {
+            checkboxId: 'srv-event',
+            text: {
+              en: 'Interested in Artist Booking and Concert Management in Dushanbe.',
+              ru: 'Интересует букинг артистов и организация концерта / выступления звезды в Душанбе.'
+            }
+          }
+        };
+        
+        const mapped = servicesMap[service];
+        if (mapped) {
+          const cb = document.getElementById(mapped.checkboxId);
+          if (cb) cb.checked = true;
+          detailsArea.value = mapped.text[lang] || mapped.text['en'];
+        }
+      }
+
+      // Specific artist deep-link from booking page
+      const artist = urlParams.get('artist');
+      if (artist) {
+        const evCb = document.getElementById('srv-event');
+        if (evCb) evCb.checked = true;
+        const artistName = decodeURIComponent(artist);
+        detailsArea.value = lang === 'ru'
+          ? `Интересует букинг артиста: ${artistName} на мероприятие в Душанбе. Рассчитайте стоимость гонорара, райдера и технического продакшна.`
+          : `Interested in booking: ${artistName} for an event in Dushanbe. Please provide availability, fee quote, and technical rider estimate.`;
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        const loader = document.getElementById('loader');
+        if (loader) loader.classList.add('hidden');
+      }, 1000);
+    });
+
+    const burger = document.getElementById('burger');
+    const mobileMenu = document.getElementById('mobileMenu');
+    burger.addEventListener('click', () => {
+      burger.classList.toggle('active');
+      mobileMenu.classList.toggle('active');
+      document.body.style.overflow = mobileMenu.classList.contains('active') ? 'hidden' : '';
+    });
+    function closeMobile() {
+      burger.classList.remove('active');
+      mobileMenu.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    // Reveal elements
+    const obs = new IntersectionObserver((entries, observer) => {
+      entries.forEach(e => { 
+        if (e.isIntersecting) {
+          e.target.classList.add('visible'); 
+          observer.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -20px 0px' });
+    document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+
+    // Toggle custom activity input field
+    function toggleCustomActivity(show) {
+      const wrapper = document.getElementById('customActivityWrapper');
+      const customInput = document.getElementById('customActivity');
+      if (show) {
+        wrapper.classList.add('active');
+        customInput.setAttribute('required', 'required');
+        customInput.focus();
+      } else {
+        wrapper.classList.remove('active');
+        customInput.removeAttribute('required');
+        customInput.value = '';
+      }
+    }
+
+    // Submit form logic
+    async function submitForm(e) {
+      e.preventDefault();
+      const form = document.getElementById('orderForm');
+      const submitBtn = document.getElementById('submitBtn');
+      
+      // Get selected services
+      const services = [];
+      document.querySelectorAll('input[name="services"]:checked').forEach((cb) => {
+        services.push(cb.value);
+      });
+
+      if (services.length === 0) {
+        alert(document.documentElement.lang === 'ru' ? 'Пожалуйста, выберите хотя бы одну услугу.' : 'Please select at least one service.');
+        return;
+      }
+
+      // Gather form data
+      const data = {
+        firstName: document.getElementById('firstName').value,
+        lastName: document.getElementById('lastName').value,
+        phone: document.getElementById('phone').value,
+        activityType: form.elements['activityType'].value,
+        customActivity: document.getElementById('customActivity').value,
+        services: services,
+        message: document.getElementById('message').value
+      };
+
+      // Set loading state
+      submitBtn.classList.add('loading');
+
+      try {
+        // Send request to Express backend running on the same domain/port
+        const response = await fetch('/api/order', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+          // Show success screen
+          document.getElementById('successOverlay').classList.add('active');
+          form.reset();
+          toggleCustomActivity(false);
+        } else {
+          const errData = await response.json();
+          alert(document.documentElement.lang === 'ru' ? 'Ошибка отправки: ' + errData.message : 'Error submitting: ' + errData.message);
+        }
+      } catch (err) {
+        console.error('Error submitting form:', err);
+        // Direct integration callback if backend is not running, 
+        // e.g. warning to run npm start or fallback to frontend direct bot fetch
+        alert(document.documentElement.lang === 'ru' 
+          ? 'Не удалось связаться с сервером. Пожалуйста, убедитесь, что сервер запущен (npm start).' 
+          : 'Could not connect to the server. Please make sure the server is running (npm start).');
+      } finally {
+        submitBtn.classList.remove('loading');
+      }
+    }
+  </script>
+</body>
+</html>

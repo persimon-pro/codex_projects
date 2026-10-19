@@ -1,0 +1,30 @@
+{
+  "name": "loft-design-lab",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "build": "node scripts/build-3d.js",
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "prestart": "npm run build",
+    "predev": "npm run build",
+    "test:e2e": "playwright test",
+    "preview:export": "npm run build && node scripts/export-preview.js"
+  },
+  "dependencies": {
+    "@fontsource-variable/manrope": "^5.3.0",
+    "@fontsource/cormorant-garamond": "^5.3.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "esbuild": "^0.25.12",
+    "express": "^4.19.2",
+    "node-telegram-bot-api": "^0.66.0",
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "nodemon": "^3.1.0"
+  },
+  "author": "Loft Creative House",
+  "license": "ISC"
+}
