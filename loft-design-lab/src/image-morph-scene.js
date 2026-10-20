@@ -17,7 +17,9 @@ const fragmentShader = /* glsl */ `
   uniform float uProgress;
   uniform float uTime;
   uniform float uMotion;
+  uniform float uQuality;
   uniform vec2 uPointer;
+  uniform float uPointerEnergy;
   uniform vec2 uResolution;
   varying vec2 vUv;
 
@@ -66,14 +68,35 @@ const fragmentShader = /* glsl */ `
 
   void main() {
     float p = clamp(uProgress, 0.0, 1.0);
-    // Endpoints are the exact artwork, without grain, parallax or distortion.
-    // Uniform branches also avoid all the flow calculations for these stills.
+    // A small glass lens follows actual pointer input. It has no effect for
+    // touch, keyboard, reduced motion, or the undisturbed artwork.
+    float lensEnergy = uPointerEnergy * uMotion;
+    float lensDistance = 0.0;
+    vec2 artworkUv = vUv;
+    if (lensEnergy > 0.001) {
+      vec2 lensCenter = 0.5 + uPointer * 0.5;
+      vec2 lensDelta = vUv - lensCenter;
+      lensDistance = length(lensDelta * vec2(uAspect, 1.0));
+      float lensFalloff = exp(-lensDistance * lensDistance * 24.0);
+      artworkUv += lensDelta * lensFalloff * lensEnergy * 0.14;
+    }
+    // Still endpoints avoid the more expensive transition flow calculations.
     if (p <= 0.00005) {
-      gl_FragColor = vec4(fromImage(vUv), 1.0);
+      gl_FragColor = vec4(fromImage(artworkUv), 1.0);
     } else if (p >= 0.99995) {
-      gl_FragColor = vec4(toImage(vUv), 1.0);
+      gl_FragColor = vec4(toImage(artworkUv), 1.0);
     } else if (uMotion < 0.5) {
       gl_FragColor = vec4(mix(fromImage(vUv), toImage(vUv), p), 1.0);
+    } else if (uQuality < 0.5) {
+      // Software rendering and slower GPUs keep the same broad glass wipe,
+      // using two texture samples instead of the layered noise/refraction pass.
+      float envelope = sin(p * 3.14159265359);
+      float field = artworkUv.x * 0.66 + (1.0 - artworkUv.y) * 0.26
+        + sin(artworkUv.y * 6.0 + uTime * 0.18) * 0.045;
+      float front = p * 1.5 - 0.25;
+      float blend = smoothstep(-0.23, 0.23, front - field);
+      vec2 bend = vec2(sin(artworkUv.y * 5.0 - p * 4.0), cos(artworkUv.x * 4.0)) * envelope * 0.025;
+      gl_FragColor = vec4(mix(fromImage(artworkUv + bend * p), toImage(artworkUv - bend * (1.0 - p)), blend), 1.0);
     } else {
       // A single broad optical wave, rather than concentric ripples. Its motion
       // vanishes at the frame edges, so even an uncropped image stays complete.
@@ -84,7 +107,7 @@ const fragmentShader = /* glsl */ `
       vec2 fieldUv = vUv * vec2(2.2, 2.2 / max(uAspect, 0.6));
       float n = silkNoise(fieldUv + slowTime);
       float n2 = silkNoise(fieldUv + vec2(7.4, 3.1) - slowTime * 0.7);
-      vec2 uv = vUv - (vUv - 0.5) * 0.015 * envelope * edgeMask;
+      vec2 uv = artworkUv - (vUv - 0.5) * 0.015 * envelope * edgeMask;
       // Broad, blurred lighting is a stable depth proxy. Fine artwork contours
       // never become a displacement map, which keeps the refracted image clean.
       float fromLight = luma(texture2D(uFrom, coverUv(vUv, uFromAspect), 5.5).rgb);
@@ -131,6 +154,10 @@ const fragmentShader = /* glsl */ `
       color += grain * 0.0003 * envelope;
       gl_FragColor = vec4(max(color, vec3(0.0)), 1.0);
     }
+    if (lensEnergy > 0.001) {
+      float lensRim = exp(-pow((lensDistance - 0.19) * 35.0, 2.0));
+      gl_FragColor.rgb += vec3(0.12, 0.10, 0.065) * lensRim * lensEnergy * 0.18;
+    }
     #include <colorspace_fragment>
   }
 `;
@@ -160,7 +187,11 @@ export async function initImageMorph(container, imageUrls) {
   let material;
   try {
     renderer = new THREE.WebGLRenderer({ alpha: false, antialias: false, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+    const graphics = renderer.getContext();
+    const debugInfo = graphics.getExtension('WEBGL_debug_renderer_info');
+    const rendererName = debugInfo ? graphics.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : '';
+    const softwareGraphics = /swiftshader|llvmpipe|software/i.test(rendererName);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, softwareGraphics ? .5 : 1.35));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.NoToneMapping;
     renderer.setClearColor(0x0c0c0c, 1);
@@ -192,7 +223,9 @@ export async function initImageMorph(container, imageUrls) {
       uProgress: { value: 0 },
       uTime: { value: 0 },
       uMotion: { value: motionPreference.matches ? 0 : 1 },
+      uQuality: { value: softwareGraphics ? 0 : 1 },
       uPointer: { value: new THREE.Vector2() },
+      uPointerEnergy: { value: 0 },
       uResolution: { value: new THREE.Vector2(1, 1) },
     };
     geometry = new THREE.PlaneGeometry(2, 2);
@@ -211,6 +244,7 @@ export async function initImageMorph(container, imageUrls) {
     let targetProgress = 0;
     let selectedPair = 0;
     let slowFrames = 0;
+    let pointerEnergy = 0;
     const targetPointer = new THREE.Vector2();
     const easedPointer = uniforms.uPointer.value;
 
@@ -238,8 +272,9 @@ export async function initImageMorph(container, imageUrls) {
       // A resumed tab starts with elapsed=0, so time spent hidden is ignored.
       if (!motionPreference.matches && visible && !document.hidden && elapsed) {
         slowFrames = elapsed > 0.055 ? slowFrames + 1 : 0;
-        if (slowFrames >= 2 && renderer.getPixelRatio() > 0.6) {
-          renderer.setPixelRatio(Math.max(0.6, renderer.getPixelRatio() * 0.7));
+        if (slowFrames >= 2 && (uniforms.uQuality.value > 0 || renderer.getPixelRatio() > 0.4)) {
+          uniforms.uQuality.value = 0;
+          renderer.setPixelRatio(Math.max(0.4, renderer.getPixelRatio() * 0.7));
           resize(false);
           slowFrames = 0;
         }
@@ -250,10 +285,14 @@ export async function initImageMorph(container, imageUrls) {
       progress = motionPreference.matches ? targetProgress : THREE.MathUtils.lerp(progress, targetProgress, ease);
       if (Math.abs(progress - targetProgress) < 0.00005) progress = targetProgress;
       easedPointer.lerp(targetPointer, ease);
+      uniforms.uPointerEnergy.value = THREE.MathUtils.lerp(uniforms.uPointerEnergy.value, pointerEnergy, ease);
+      if (Math.abs(uniforms.uPointerEnergy.value - pointerEnergy) < 0.00005) uniforms.uPointerEnergy.value = pointerEnergy;
       uniforms.uMotion.value = motionPreference.matches ? 0 : 1;
       updateTextures();
       renderer.render(scene, camera);
-      const changing = Math.abs(progress - targetProgress) > 0.00005 || easedPointer.distanceToSquared(targetPointer) > 0.000001;
+      const changing = Math.abs(progress - targetProgress) > 0.00005
+        || easedPointer.distanceToSquared(targetPointer) > 0.000001
+        || Math.abs(uniforms.uPointerEnergy.value - pointerEnergy) > 0.00005;
       const localProgress = uniforms.uProgress.value;
       const ambientActive = moving && localProgress > 0.00005 && localProgress < 0.99995;
       if (visible && !document.hidden && (ambientActive || changing)) frameId = requestAnimationFrame(render);
@@ -285,6 +324,8 @@ export async function initImageMorph(container, imageUrls) {
       if (motionPreference.matches) {
         targetPointer.set(0, 0);
         easedPointer.set(0, 0);
+        pointerEnergy = 0;
+        uniforms.uPointerEnergy.value = 0;
         progress = targetProgress;
       }
       requestRender();
@@ -323,9 +364,10 @@ export async function initImageMorph(container, imageUrls) {
         requestRender();
       },
       // Pointer coordinates are normalized to -1..1, with their origin at center.
-      setPointer(x, y) {
+      setPointer(x, y, active = false) {
         if (!Number.isFinite(x) || !Number.isFinite(y) || motionPreference.matches) return;
         targetPointer.set(THREE.MathUtils.clamp(x, -1, 1), THREE.MathUtils.clamp(y, -1, 1));
+        pointerEnergy = active ? 1 : 0;
         requestRender();
       },
       setPaused(value) {

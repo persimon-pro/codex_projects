@@ -1,7 +1,7 @@
 const { build } = require('esbuild');
 
 build({
-  entryPoints: ['src/loft-experience.js', 'src/loft-cinema.js'],
+  entryPoints: ['src/loft-experience.js', 'src/loft-cinema.js', 'src/loft-pages.js'],
   outdir: 'assets/js',
   assetNames: 'fonts/[name]-[hash]',
   loader: { '.woff2': 'file', '.woff': 'file' },

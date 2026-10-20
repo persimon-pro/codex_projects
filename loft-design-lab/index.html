@@ -132,6 +132,8 @@
   <link rel="preload" as="image" href="assets/images/cinema/obsidian.webp" type="image/webp" fetchpriority="high">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="loft-cinema.css">
+  <link rel="stylesheet" href="site-choreography.css">
+  <link rel="stylesheet" href="liquid-sculpture.css">
   <link rel="stylesheet" href="assets/js/loft-cinema.css">
   <script>document.documentElement.setAttribute('data-loft-loading', '');</script>
   <style>
@@ -246,6 +248,37 @@
     </div>
   </section>
 
+
+  <!-- A live material study: an idea you can turn, reshape and feel. -->
+  <section class="loft-lab" id="loft-lab" aria-labelledby="lab-title" data-lab-mode="0">
+    <div class="lab-sticky">
+      <div class="lab-header">
+        <p class="section-label lab-eyebrow">LOFT / EXPERIMENT NO. 01</p>
+        <h2 class="lab-title" id="lab-title"><span class="lang lang-ru">У идеи нет<br><em>границ.</em></span><span class="lang lang-en">An idea has<br><em>no limits.</em></span></h2>
+        <p class="lab-description"><span class="lang lang-ru">Только форма, которую мы ей придадим.<br>Прикоснитесь. Измените. Почувствуйте.</span><span class="lang lang-en">Only the form we choose to give it.<br>Touch it. Shape it. Feel it.</span></p>
+      </div>
+      <div class="lab-viewport" role="img" aria-label="Интерактивная металлическая скульптура / Interactive metallic sculpture">
+        <span class="lab-fallback" aria-hidden="true"></span>
+      </div>
+      <span class="lab-index" aria-hidden="true"><b data-lab-index>01</b> — <span data-lab-mode-name>ORBIT</span></span>
+      <div class="lab-controls">
+        <div class="lab-mode-group" role="group" aria-label="Форма скульптуры / Sculpture form">
+          <button class="lab-mode" type="button" data-lab-mode="0" aria-pressed="true"><span class="lab-mode-number">01</span> ORBIT</button>
+          <button class="lab-mode" type="button" data-lab-mode="1" aria-pressed="false"><span class="lab-mode-number">02</span> FLUX</button>
+          <button class="lab-mode" type="button" data-lab-mode="2" aria-pressed="false"><span class="lab-mode-number">03</span> SIGNAL</button>
+        </div>
+        <div class="lab-energy"><label for="lab-energy-input"><span class="lang lang-ru">Энергия</span><span class="lang lang-en">Energy</span><span data-lab-energy-value aria-hidden="true">35%</span></label><input id="lab-energy-input" type="range" min="0" max="100" value="35" data-lab-energy aria-label="Энергия скульптуры / Sculpture energy"></div>
+      </div>
+      <div class="lab-footer">
+        <span class="lab-hint"><span class="lang lang-ru">Перетаскивайте, чтобы исследовать</span><span class="lang lang-en">Drag to explore the unexpected</span></span>
+        <div class="lab-actions">
+          <button type="button" data-lab-pause aria-pressed="false"><span class="lang lang-ru">Пауза</span><span class="lang lang-en">Pause</span></button>
+          <button type="button" data-lab-reset><span class="lang lang-ru">Сначала ↺</span><span class="lang lang-en">Reset ↺</span></button>
+        </div>
+        <span class="lab-footnote" aria-hidden="true">IDEA → MATTER → IMPACT</span>
+      </div>
+    </div>
+  </section>
 
   <!-- Work / Selected Portfolio -->
   <section class="section" id="work">

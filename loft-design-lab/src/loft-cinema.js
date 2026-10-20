@@ -6,6 +6,8 @@ import '@fontsource/cormorant-garamond/cyrillic-500-italic.css';
 import { initImageMorph } from './image-morph-scene.js';
 import { initAnimationSystem } from './animation-system.js';
 import { initScrollEffects } from './scroll-effects.js';
+import { initSiteChoreography } from './site-choreography.js';
+import { initLiquidSculpture } from './liquid-sculpture.js';
 
 const story = document.querySelector('.cinema-story');
 const visual = document.querySelector('.cinema-visual');
@@ -19,6 +21,8 @@ const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
 const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
 const animationSystem = initAnimationSystem(motion);
 const scrollEffects = initScrollEffects(motion);
+const choreography = initSiteChoreography(motion);
+const sculpture = initLiquidSculpture(motion);
 const cleanups = [];
 const images = window.__LOFT_CINEMA_IMAGES__ || ['obsidian', 'aurea', 'alba'].map(name => `/assets/images/cinema/${name}.webp`);
 
@@ -42,7 +46,7 @@ if (story && visual && stage && fallback && pause) {
     pointer.x = pointer.y = 0;
     stage.style.removeProperty('--cinema-copy-x');
     stage.style.removeProperty('--cinema-copy-y');
-    renderer?.setPointer(0, 0);
+    renderer?.setPointer(0, 0, false);
   };
   const onPointerMove = event => {
     if (!finePointer.matches || motion.matches || event.pointerType === 'touch') return;
@@ -54,7 +58,7 @@ if (story && visual && stage && fallback && pause) {
       pointerFrame = 0;
       stage.style.setProperty('--cinema-copy-x', `${(pointer.x * 9).toFixed(2)}px`);
       stage.style.setProperty('--cinema-copy-y', `${(pointer.y * 6).toFixed(2)}px`);
-      renderer?.setPointer(pointer.x, -pointer.y);
+      renderer?.setPointer(pointer.x, -pointer.y, true);
     });
   };
   stage.addEventListener('pointermove', onPointerMove, { passive: true });
@@ -252,5 +256,7 @@ document.querySelectorAll('.portfolio-thumb-wrapper').forEach(card => {
 window.addEventListener('pagehide', event => {
   if (event.persisted) return;
   scrollEffects.destroy();
+  choreography.destroy();
+  sculpture?.destroy();
   cleanups.forEach(cleanup => cleanup());
 });
