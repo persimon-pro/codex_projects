@@ -6,6 +6,9 @@ import '@fontsource/cormorant-garamond/cyrillic-500-italic.css';
 import { initImageMorph } from './image-morph-scene.js';
 import { initAnimationSystem } from './animation-system.js';
 import { initScrollEffects } from './scroll-effects.js';
+import { initSiteChoreography } from './site-choreography.js';
+import { initLiquidSculpture } from './liquid-sculpture.js';
+import { initLogoIntro } from './logo-intro.js';
 
 const story = document.querySelector('.cinema-story');
 const visual = document.querySelector('.cinema-visual');
@@ -17,8 +20,11 @@ const pause = document.getElementById('cinemaPause');
 const chapterNumber = document.querySelector('.cinema-current');
 const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
 const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
+const intro = initLogoIntro(motion);
 const animationSystem = initAnimationSystem(motion);
 const scrollEffects = initScrollEffects(motion);
+const choreography = initSiteChoreography(motion);
+const sculpture = initLiquidSculpture(motion);
 const cleanups = [];
 const images = window.__LOFT_CINEMA_IMAGES__ || ['obsidian', 'aurea', 'alba'].map(name => `/assets/images/cinema/${name}.webp`);
 
@@ -34,6 +40,7 @@ if (story && visual && stage && fallback && pause) {
   let lastTime = 0;
   let direction = 1;
   let pointerFrame = 0;
+  let introComplete = false;
   const pointer = { x: 0, y: 0 };
 
   const resetPointer = () => {
@@ -42,7 +49,7 @@ if (story && visual && stage && fallback && pause) {
     pointer.x = pointer.y = 0;
     stage.style.removeProperty('--cinema-copy-x');
     stage.style.removeProperty('--cinema-copy-y');
-    renderer?.setPointer(0, 0);
+    renderer?.setPointer(0, 0, false);
   };
   const onPointerMove = event => {
     if (!finePointer.matches || motion.matches || event.pointerType === 'touch') return;
@@ -54,7 +61,7 @@ if (story && visual && stage && fallback && pause) {
       pointerFrame = 0;
       stage.style.setProperty('--cinema-copy-x', `${(pointer.x * 9).toFixed(2)}px`);
       stage.style.setProperty('--cinema-copy-y', `${(pointer.y * 6).toFixed(2)}px`);
-      renderer?.setPointer(pointer.x, -pointer.y);
+      renderer?.setPointer(pointer.x, -pointer.y, true);
     });
   };
   stage.addEventListener('pointermove', onPointerMove, { passive: true });
@@ -75,7 +82,7 @@ if (story && visual && stage && fallback && pause) {
       stage.dataset.currentChapter = String(chapter);
       chapters.forEach((button, index) => button.setAttribute('aria-pressed', String(index === chapter)));
       copies.forEach((copy, index) => { copy.hidden = index !== chapter; });
-      animationSystem.animateCopy(copies[chapter]);
+      if (introComplete) animationSystem.animateCopy(copies[chapter]);
       chapterNumber.textContent = `0${chapter + 1}`;
       fallback.src = images[chapter];
     }
@@ -171,14 +178,20 @@ if (story && visual && stage && fallback && pause) {
 
   labels();
   applyProgress(automatic ? 0 : scrollProgress());
-  initImageMorph(visual, images).then(controller => {
-    if (disposed) { controller.dispose(); return; }
-    renderer = controller;
-    renderer.setProgress(progress);
-    renderer.setPointer(pointer.x, -pointer.y);
-    renderer.setPaused(manuallyPaused);
-    visual.classList.add('is-ready');
-    requestTick();
+  intro.finished.then(() => {
+    if (disposed) return;
+    introComplete = true;
+    // The logo is the entrance. Keep the first CTA at its final position as
+    // the overlay leaves so native focus and touch never chase a moving link.
+    return initImageMorph(visual, images).then(controller => {
+      if (disposed) { controller.dispose(); return; }
+      renderer = controller;
+      renderer.setProgress(progress);
+      renderer.setPointer(pointer.x, -pointer.y);
+      renderer.setPaused(manuallyPaused);
+      visual.classList.add('is-ready');
+      requestTick();
+    });
   }).catch(error => {
     visual.classList.add('is-static');
     console.warn('LOFT cinema: static artwork is active.', error);
@@ -251,6 +264,9 @@ document.querySelectorAll('.portfolio-thumb-wrapper').forEach(card => {
 
 window.addEventListener('pagehide', event => {
   if (event.persisted) return;
+  intro.destroy();
   scrollEffects.destroy();
+  choreography.destroy();
+  sculpture?.destroy();
   cleanups.forEach(cleanup => cleanup());
 });

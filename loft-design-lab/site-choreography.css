@@ -1,0 +1,50 @@
+/* LOFT / the movement between the frames. Native hit areas and text remain. */
+.motion-experience { --motion-champagne: #c4ac7e; --motion-ivory: #eee9df; }
+.motion-page-progress { position: fixed; inset: 0 0 auto; height: 2px; z-index: 2000; pointer-events: none; }
+.motion-page-progress > span { display: block; width: 100%; height: 100%; background: linear-gradient(90deg, #706142, #eee9df 72%, #c4ac7e); transform: scaleX(0); transform-origin: left center; box-shadow: 0 0 12px #c4ac7e66; }
+.motion-case-cursor { position: fixed; left: 0; top: 0; width: 88px; height: 88px; margin: -44px 0 0 -44px; border-radius: 50% !important; z-index: 1300; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; background: #eee9dfed; color: #11130f; font: 500 9px/1.2 var(--sans, Arial, sans-serif); letter-spacing: .25px; pointer-events: none; opacity: 0; scale: .5; transition: opacity .2s, scale .45s cubic-bezier(.16,1,.3,1); backdrop-filter: blur(8px); }
+.motion-case-cursor > span:last-child { font: 300 25px/1 Arial, sans-serif; }
+.motion-case-cursor.is-visible { opacity: 1; scale: 1; }
+.motion-word { display: inline; }
+.motion-responsive-card { position: relative; isolation: isolate; }
+.motion-card-light { position: absolute; inset: 0; z-index: -1; background: radial-gradient(ellipse at var(--card-light-x,50%) var(--card-light-y,50%), #c4ac7e1c, transparent 70%); opacity: 0; pointer-events: none; transition: opacity .5s; }
+.motion-responsive-card.is-motion-active .motion-card-light { opacity: 1; }
+.motion-enabled .motion-responsive-card .discipline-name,
+.motion-enabled .motion-responsive-card .service-cell-title { transform: translate3d(var(--card-heading-x,0px),var(--card-heading-y,0px),0); transition: transform .6s cubic-bezier(.16,1,.3,1), color .35s; }
+.motion-experience .discipline-num, .motion-experience .service-cell-num { position: relative; display: inline-block; }
+.motion-enabled .discipline-num, .motion-enabled .service-cell-num { translate: 0 var(--number-shift,0%); }
+.motion-experience .discipline { transition: background-color .5s, border-color .5s; }
+.motion-enabled .discipline:hover { background: #14160f; }
+.motion-enabled .discipline:hover .discipline-name, .motion-enabled .service-cell:hover .service-cell-title { color: var(--motion-ivory); }
+.motion-experience .motion-marquee-active > div { animation: none; will-change: transform; }
+.motion-experience .nav-links a, .motion-experience .footer-col a { text-underline-offset: 5px; transition: color .25s, text-decoration-color .25s; }
+.motion-experience .nav-links a:hover, .motion-experience .footer-col a:hover { color: var(--motion-champagne); text-decoration-color: currentColor; }
+.motion-experience .pricing-card-btn, .motion-experience .nav-cta-btn, .motion-experience .mobile-cta-header, .motion-experience .btn { position: relative; isolation: isolate; transition: background-color .3s, color .3s, border-color .3s, box-shadow .35s; }
+.motion-enabled .pricing-card-btn:hover, .motion-enabled .nav-cta-btn:hover, .motion-enabled .mobile-cta-header:hover { box-shadow: 0 0 32px #c4ac7e17; }
+.motion-experience .contact-icon-btn { transition: background-color .35s, border-color .35s, box-shadow .35s; }
+.motion-enabled .contact-icon-btn:hover { box-shadow: 0 0 35px #c4ac7e23; }
+.motion-enabled .contact-icon-btn svg { will-change: transform; }
+.motion-enabled .pattern-svg { rotate: var(--motif-rotation,0deg); }
+.motion-experience .client-logo-wrapper { perspective: 600px; }
+@supports (background-clip: text) or (-webkit-background-clip: text) {
+  .motion-enabled .motion-contact-heading > .lang { background-image: linear-gradient(110deg, #eee9df 0%, #eee9df calc(var(--contact-glow,0%) - 35%), #c4ac7e var(--contact-glow,0%), #787b6d calc(var(--contact-glow,0%) + 30%), #787b6d 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .motion-enabled .motion-contact-heading > .lang > em { color: inherit; }
+}
+.motion-experience .service-hero { isolation: isolate; overflow: hidden; }
+.loft-service-aura { position: absolute; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(ellipse at var(--page-light-x,75%) var(--page-light-y,35%), #c4ac7e1f, transparent 55%); }
+.loft-brief-progress { height: 2px; background: #c4ac7e22; overflow: hidden; margin: 0 0 15px; }
+.loft-brief-progress > span { display: block; width: 100%; height: 100%; background: #c4ac7e; transform: scaleX(0); transform-origin: left; }
+.loft-brief-status { font: 10px/1.6 var(--sans,Arial,sans-serif); letter-spacing: 1px; color: #a9a08f; margin: 0 0 36px; }
+.loft-field-active { border-color: #c4ac7e !important; }
+@media (hover: none), (pointer: coarse) { .motion-case-cursor { display: none; } .motion-responsive-card .motion-card-light { display: none; } }
+@media (max-width: 800px) { .motion-page-progress { height: 1px; } }
+@media (prefers-reduced-motion: reduce) {
+  .motion-case-cursor, .motion-card-light { display: none; }
+  .motion-experience .motion-word { color: inherit !important; }
+  .motion-experience .discipline-num, .motion-experience .service-cell-num { translate: none !important; }
+  .motion-experience .motion-responsive-card .discipline-name, .motion-experience .motion-responsive-card .service-cell-title { transform: none !important; }
+  .motion-experience .motion-marquee-active > div { transform: none !important; }
+  .motion-experience .contact-icon-btn svg { transform: none !important; }
+  .motion-experience .pattern-svg { rotate: none !important; }
+  .motion-experience .loft-brief-progress > span { transition: none; }
+}

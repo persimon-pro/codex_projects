@@ -130,8 +130,12 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16x16.png?v=3">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=3">
   <link rel="preload" as="image" href="assets/images/cinema/obsidian.webp" type="image/webp" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/images/logo_rect_white.png" type="image/png" fetchpriority="high">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="loft-cinema.css">
+  <link rel="stylesheet" href="site-choreography.css">
+  <link rel="stylesheet" href="liquid-sculpture.css">
+  <link rel="stylesheet" href="logo-intro.css">
   <link rel="stylesheet" href="assets/js/loft-cinema.css">
   <script>document.documentElement.setAttribute('data-loft-loading', '');</script>
   <style>
@@ -150,9 +154,13 @@
 <body class="cinema-mode">
 
   <!-- Loader -->
-  <div class="loader" id="loader">
-    <div class="loader-line"></div>
-    <span class="loader-mark">Loft Creative House</span>
+  <div class="loader logo-intro" id="loader">
+    <div class="logo-intro-stage" role="img" aria-label="LOFT Creative House">
+      <canvas class="logo-intro-canvas" aria-hidden="true"></canvas>
+      <img class="logo-intro-mark" data-intro-logo src="assets/images/logo_rect_white.png" alt="" width="524" height="242" decoding="async" fetchpriority="high">
+    </div>
+    <span class="logo-intro-caption" aria-hidden="true">ANIMA IN SILICIO</span>
+    <button class="logo-intro-skip" data-intro-skip type="button"><span class="lang lang-ru">Пропустить</span><span class="lang lang-en">Skip intro</span><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 19 19 5M5 5h14v14" stroke="currentColor" stroke-width="1.25"/></svg></button>
   </div>
 
   <!-- Nav -->
@@ -246,6 +254,37 @@
     </div>
   </section>
 
+
+  <!-- A live material study: an idea you can turn, reshape and feel. -->
+  <section class="loft-lab" id="loft-lab" aria-labelledby="lab-title" data-lab-mode="0">
+    <div class="lab-sticky">
+      <div class="lab-header">
+        <p class="section-label lab-eyebrow">LOFT / EXPERIMENT NO. 01</p>
+        <h2 class="lab-title" id="lab-title"><span class="lang lang-ru">У идеи нет<br><em>границ.</em></span><span class="lang lang-en">An idea has<br><em>no limits.</em></span></h2>
+        <p class="lab-description"><span class="lang lang-ru">Только форма, которую мы ей придадим.<br>Прикоснитесь. Измените. Почувствуйте.</span><span class="lang lang-en">Only the form we choose to give it.<br>Touch it. Shape it. Feel it.</span></p>
+      </div>
+      <div class="lab-viewport" role="img" aria-label="Интерактивная металлическая скульптура / Interactive metallic sculpture">
+        <span class="lab-fallback" aria-hidden="true"></span>
+      </div>
+      <span class="lab-index" aria-hidden="true"><b data-lab-index>01</b> — <span data-lab-mode-name>ORBIT</span></span>
+      <div class="lab-controls">
+        <div class="lab-mode-group" role="group" aria-label="Форма скульптуры / Sculpture form">
+          <button class="lab-mode" type="button" data-lab-mode="0" aria-pressed="true"><span class="lab-mode-number">01</span> ORBIT</button>
+          <button class="lab-mode" type="button" data-lab-mode="1" aria-pressed="false"><span class="lab-mode-number">02</span> FLUX</button>
+          <button class="lab-mode" type="button" data-lab-mode="2" aria-pressed="false"><span class="lab-mode-number">03</span> SIGNAL</button>
+        </div>
+        <div class="lab-energy"><label for="lab-energy-input"><span class="lang lang-ru">Энергия</span><span class="lang lang-en">Energy</span><span data-lab-energy-value aria-hidden="true">35%</span></label><input id="lab-energy-input" type="range" min="0" max="100" value="35" data-lab-energy aria-label="Энергия скульптуры / Sculpture energy"></div>
+      </div>
+      <div class="lab-footer">
+        <span class="lab-hint"><span class="lang lang-ru">Перетаскивайте, чтобы исследовать</span><span class="lang lang-en">Drag to explore the unexpected</span></span>
+        <div class="lab-actions">
+          <button type="button" data-lab-pause aria-pressed="false"><span class="lang lang-ru">Пауза</span><span class="lang lang-en">Pause</span></button>
+          <button type="button" data-lab-reset><span class="lang lang-ru">Сначала ↺</span><span class="lang lang-en">Reset ↺</span></button>
+        </div>
+        <span class="lab-footnote" aria-hidden="true">IDEA → MATTER → IMPACT</span>
+      </div>
+    </div>
+  </section>
 
   <!-- Work / Selected Portfolio -->
   <section class="section" id="work">
@@ -2402,13 +2441,6 @@
         }
       });
     })();
-
-    document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(() => {
-        const loader = document.getElementById('loader');
-        if (loader) loader.classList.add('hidden');
-      }, 1000);
-    });
 
     const burger = document.getElementById('burger');
     const mobileMenu = document.getElementById('mobileMenu');
