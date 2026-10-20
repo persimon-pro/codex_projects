@@ -5,6 +5,7 @@ import '@fontsource/cormorant-garamond/latin-500-italic.css';
 import '@fontsource/cormorant-garamond/cyrillic-500-italic.css';
 import { initImageMorph } from './image-morph-scene.js';
 import { initAnimationSystem } from './animation-system.js';
+import { initScrollEffects } from './scroll-effects.js';
 
 const story = document.querySelector('.cinema-story');
 const visual = document.querySelector('.cinema-visual');
@@ -15,7 +16,10 @@ const copies = [...document.querySelectorAll('[data-cinema-copy]')];
 const pause = document.getElementById('cinemaPause');
 const chapterNumber = document.querySelector('.cinema-current');
 const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
 const animationSystem = initAnimationSystem(motion);
+const scrollEffects = initScrollEffects(motion);
+const cleanups = [];
 const images = window.__LOFT_CINEMA_IMAGES__ || ['obsidian', 'aurea', 'alba'].map(name => `/assets/images/cinema/${name}.webp`);
 
 if (story && visual && stage && fallback && pause) {
@@ -29,6 +33,35 @@ if (story && visual && stage && fallback && pause) {
   let frame = 0;
   let lastTime = 0;
   let direction = 1;
+  let pointerFrame = 0;
+  const pointer = { x: 0, y: 0 };
+
+  const resetPointer = () => {
+    cancelAnimationFrame(pointerFrame);
+    pointerFrame = 0;
+    pointer.x = pointer.y = 0;
+    stage.style.removeProperty('--cinema-copy-x');
+    stage.style.removeProperty('--cinema-copy-y');
+    renderer?.setPointer(0, 0);
+  };
+  const onPointerMove = event => {
+    if (!finePointer.matches || motion.matches || event.pointerType === 'touch') return;
+    const bounds = stage.getBoundingClientRect();
+    pointer.x = Math.max(-1, Math.min(1, ((event.clientX - bounds.left) / bounds.width - .5) * 2));
+    pointer.y = Math.max(-1, Math.min(1, ((event.clientY - bounds.top) / bounds.height - .5) * 2));
+    if (pointerFrame) return;
+    pointerFrame = requestAnimationFrame(() => {
+      pointerFrame = 0;
+      stage.style.setProperty('--cinema-copy-x', `${(pointer.x * 9).toFixed(2)}px`);
+      stage.style.setProperty('--cinema-copy-y', `${(pointer.y * 6).toFixed(2)}px`);
+      renderer?.setPointer(pointer.x, -pointer.y);
+    });
+  };
+  stage.addEventListener('pointermove', onPointerMove, { passive: true });
+  stage.addEventListener('pointerleave', resetPointer);
+  window.addEventListener('blur', resetPointer);
+  finePointer.addEventListener('change', resetPointer);
+  motion.addEventListener('change', resetPointer);
 
   function applyProgress(value) {
     progress = Math.max(0, Math.min(1, value));
@@ -122,7 +155,7 @@ if (story && visual && stage && fallback && pause) {
   const visibility = new IntersectionObserver(([entry]) => {
     visible = entry.isIntersecting;
     if (visible) requestTick();
-    else { cancelAnimationFrame(frame); frame = 0; }
+    else { cancelAnimationFrame(frame); frame = 0; resetPointer(); }
   });
   visibility.observe(stage);
   document.addEventListener('visibilitychange', () => {
@@ -142,6 +175,7 @@ if (story && visual && stage && fallback && pause) {
     if (disposed) { controller.dispose(); return; }
     renderer = controller;
     renderer.setProgress(progress);
+    renderer.setPointer(pointer.x, -pointer.y);
     renderer.setPaused(manuallyPaused);
     visual.classList.add('is-ready');
     requestTick();
@@ -153,6 +187,12 @@ if (story && visual && stage && fallback && pause) {
   window.addEventListener('pagehide', event => {
     if (event.persisted) return;
     disposed = true;
+    resetPointer();
+    stage.removeEventListener('pointermove', onPointerMove);
+    stage.removeEventListener('pointerleave', resetPointer);
+    window.removeEventListener('blur', resetPointer);
+    finePointer.removeEventListener('change', resetPointer);
+    motion.removeEventListener('change', resetPointer);
     cancelAnimationFrame(frame);
     cancelAnimationFrame(scrollFrame);
     resize.disconnect();
@@ -164,7 +204,6 @@ if (story && visual && stage && fallback && pause) {
 }
 
 // Quiet depth for the existing case studies. Pointer effects never alter links.
-const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
 document.querySelectorAll('.portfolio-thumb-wrapper').forEach(card => {
   const image = card.querySelector('img');
   const showPoster = () => {
@@ -176,18 +215,42 @@ document.querySelectorAll('.portfolio-thumb-wrapper').forEach(card => {
   let frame = 0;
   const reset = () => {
     cancelAnimationFrame(frame);
+    frame = 0;
     card.style.removeProperty('--cinema-tilt-x');
     card.style.removeProperty('--cinema-tilt-y');
+    card.style.removeProperty('--cinema-light-x');
+    card.style.removeProperty('--cinema-light-y');
   };
-  card.addEventListener('pointermove', event => {
-    if (!finePointer.matches || motion.matches) return;
+  const move = event => {
+    if (!finePointer.matches || motion.matches || event.pointerType === 'touch') return;
     cancelAnimationFrame(frame);
     frame = requestAnimationFrame(() => {
+      frame = 0;
       const box = card.getBoundingClientRect();
-      card.style.setProperty('--cinema-tilt-y', `${((event.clientX - box.left) / box.width - .5) * 4}deg`);
-      card.style.setProperty('--cinema-tilt-x', `${-((event.clientY - box.top) / box.height - .5) * 3}deg`);
+      const x = Math.max(0, Math.min(1, (event.clientX - box.left) / box.width));
+      const y = Math.max(0, Math.min(1, (event.clientY - box.top) / box.height));
+      card.style.setProperty('--cinema-tilt-y', `${(x - .5) * 8}deg`);
+      card.style.setProperty('--cinema-tilt-x', `${-(y - .5) * 6}deg`);
+      card.style.setProperty('--cinema-light-x', `${x * 100}%`);
+      card.style.setProperty('--cinema-light-y', `${y * 100}%`);
     });
-  }, { passive: true });
+  };
+  card.addEventListener('pointermove', move, { passive: true });
   card.addEventListener('pointerleave', reset);
   motion.addEventListener('change', reset);
+  finePointer.addEventListener('change', reset);
+  cleanups.push(() => {
+    reset();
+    card.removeEventListener('pointermove', move);
+    card.removeEventListener('pointerleave', reset);
+    motion.removeEventListener('change', reset);
+    finePointer.removeEventListener('change', reset);
+    image?.removeEventListener('error', showPoster);
+  });
+});
+
+window.addEventListener('pagehide', event => {
+  if (event.persisted) return;
+  scrollEffects.destroy();
+  cleanups.forEach(cleanup => cleanup());
 });

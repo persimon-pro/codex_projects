@@ -66,53 +66,69 @@ const fragmentShader = /* glsl */ `
 
   void main() {
     float p = clamp(uProgress, 0.0, 1.0);
-    // All displacements fade out before the canvas edges. No clamped streaks or
-    // empty pixels appear, including when an image and canvas have equal aspects.
-    vec2 edgeDistance = min(vUv, 1.0 - vUv);
-    float edgeMask = smoothstep(0.0, 0.16, min(edgeDistance.x, edgeDistance.y));
-    vec2 uv = vUv;
-    vec2 slowTime = vec2(uTime * 0.018, -uTime * 0.012);
-    vec2 fieldUv = vUv * vec2(2.55, 2.55 / max(uAspect, 0.6));
-    float n = silkNoise(fieldUv + slowTime);
-    float n2 = silkNoise(fieldUv + vec2(7.4, 3.1) - slowTime * 0.7);
-    // Ambient movement is less than one percent of the image. The photograph
-    // retains its detail while scroll-driven transitions carry the larger flow.
-    vec2 ambient = (vec2(n, n2) - 0.47) * 0.003;
-    uv += (ambient + uPointer * 0.004) * edgeMask * uMotion;
-    vec3 baseFrom = fromImage(uv);
-    vec3 baseTo = toImage(uv);
-
-    if (uMotion < 0.5) {
-      gl_FragColor = vec4(mix(baseFrom, baseTo, p), 1.0);
+    // Endpoints are the exact artwork, without grain, parallax or distortion.
+    // Uniform branches also avoid all the flow calculations for these stills.
+    if (p <= 0.00005) {
+      gl_FragColor = vec4(fromImage(vUv), 1.0);
+    } else if (p >= 0.99995) {
+      gl_FragColor = vec4(toImage(vUv), 1.0);
+    } else if (uMotion < 0.5) {
+      gl_FragColor = vec4(mix(fromImage(vUv), toImage(vUv), p), 1.0);
     } else {
-      float envelope = sin(p * 3.14159265359);
-      // Blurred mip levels keep the displacement tied to the artwork's broad
-      // lighting, rather than bending individual sharp edges and fine details.
-      float fromLight = luma(texture2D(uFrom, coverUv(uv, uFromAspect), 5.5).rgb);
-      float toLight = luma(texture2D(uTo, coverUv(uv, uToAspect), 5.5).rgb);
+      // A single broad optical wave, rather than concentric ripples. Its motion
+      // vanishes at the frame edges, so even an uncropped image stays complete.
+      vec2 edgeDistance = min(vUv, 1.0 - vUv);
+      float edgeMask = smoothstep(0.0, 0.19, min(edgeDistance.x, edgeDistance.y));
+      float envelope = pow(sin(p * 3.14159265359), 0.85);
+      vec2 slowTime = vec2(uTime * 0.018, -uTime * 0.012);
+      vec2 fieldUv = vUv * vec2(2.2, 2.2 / max(uAspect, 0.6));
+      float n = silkNoise(fieldUv + slowTime);
+      float n2 = silkNoise(fieldUv + vec2(7.4, 3.1) - slowTime * 0.7);
+      vec2 uv = vUv - (vUv - 0.5) * 0.015 * envelope * edgeMask;
+      // Broad, blurred lighting is a stable depth proxy. Fine artwork contours
+      // never become a displacement map, which keeps the refracted image clean.
+      float fromLight = luma(texture2D(uFrom, coverUv(vUv, uFromAspect), 5.5).rgb);
+      float toLight = luma(texture2D(uTo, coverUv(vUv, uToAspect), 5.5).rgb);
       float lightDifference = fromLight - toLight;
-      vec2 flow = (vec2(n, n2) - 0.47) * vec2(0.15, 0.12);
-      flow += vec2(0.8, -0.45) * lightDifference * 0.035;
+      vec2 pointerFrom = uPointer * (0.3 + fromLight) * 0.022 * edgeMask * envelope;
+      vec2 pointerTo = uPointer * (0.3 + toLight) * 0.022 * edgeMask * envelope;
+      vec2 direction = normalize(vec2(0.88, -0.37) + (vec2(n, n2) - 0.47) * 0.65);
+      vec2 tangent = vec2(-direction.y, direction.x);
+      vec2 flow = (vec2(n, n2) - 0.47) * vec2(0.19, 0.15);
+      flow += tangent * lightDifference * 0.045;
       flow *= edgeMask * envelope;
 
-      // A wide, feathered liquid front follows the image's light and material.
-      // A little global mixing keeps the passage continuous in every region.
-      float field = 0.1 + vUv.x * 0.44 + (1.0 - vUv.y) * 0.18
-        + n * 0.28 + (fromLight - 0.5) * 0.12;
-      float front = p * 1.46 - 0.23;
-      float reveal = smoothstep(field - 0.23, field + 0.23, front);
-      float blend = mix(p, reveal, 0.85);
-      if (p < 0.0001) blend = 0.0;
-      if (p > 0.9999) blend = 1.0;
+      float field = 0.08 + vUv.x * 0.57 + (1.0 - vUv.y) * 0.22
+        + n * 0.25 + (fromLight - 0.5) * 0.08;
+      float front = p * 1.5 - 0.25;
+      float distanceToFront = field - front;
+      float reveal = smoothstep(-0.145, 0.145, -distanceToFront);
+      float blend = mix(p, reveal, 0.94);
 
-      float boundary = exp(-pow((field - front) / 0.105, 2.0)) * envelope;
-      vec2 refraction = normalize(flow + vec2(0.0001)) * 0.004 * boundary * edgeMask;
-      vec3 outgoing = fromImage(uv + flow * p + refraction);
-      vec3 incoming = toImage(uv - flow * (1.0 - p) - refraction);
+      float lens = exp(-pow(distanceToFront / 0.15, 2.0));
+      float bend = sin(distanceToFront * 13.0) * lens;
+      vec2 refraction = direction * bend * 0.12 * envelope * edgeMask;
+      vec2 outgoingUv = uv + pointerFrom + flow * p + refraction;
+      vec2 incomingUv = uv + pointerTo - flow * (1.0 - p) - refraction;
+      vec3 outgoing = fromImage(outgoingUv);
+      vec3 incoming = toImage(incomingUv);
       vec3 color = mix(outgoing, incoming, blend);
-      // Barely visible monochrome film grain, applied before output conversion.
+      // A second shallow refraction layer gives the front the thickness of
+      // curved glass. Six texture reads total, matching the previous shader.
+      vec3 opticalLayer = mix(
+        fromImage(outgoingUv + refraction * 0.55),
+        toImage(incomingUv - refraction * 0.55), blend
+      );
+      color = mix(color, opticalLayer, lens * envelope * 0.18);
+      float shoulder = exp(-pow((distanceToFront + 0.045) / 0.055, 2.0));
+      color *= 1.0 - shoulder * envelope * edgeMask * 0.1;
+      // A restrained ivory facet catches light; there is no bloom or flash.
+      float facet = exp(-pow(distanceToFront / 0.007, 2.0)) * 0.022;
+      float softLight = exp(-pow(distanceToFront / 0.04, 2.0)) * 0.005;
+      color += vec3(0.96, 0.92, 0.84) * (facet + softLight)
+        * envelope * edgeMask * (0.65 + toLight * 0.35);
       float grain = hash(floor(vUv * uResolution) + floor(uTime * 12.0)) - 0.5;
-      color += grain * 0.00035;
+      color += grain * 0.0003 * envelope;
       gl_FragColor = vec4(max(color, vec3(0.0)), 1.0);
     }
     #include <colorspace_fragment>
@@ -194,6 +210,7 @@ export async function initImageMorph(container, imageUrls) {
     let progress = 0;
     let targetProgress = 0;
     let selectedPair = 0;
+    let slowFrames = 0;
     const targetPointer = new THREE.Vector2();
     const easedPointer = uniforms.uPointer.value;
 
@@ -213,8 +230,20 @@ export async function initImageMorph(container, imageUrls) {
     const render = (now) => {
       frameId = 0;
       if (disposed || contextLost) return;
-      const dt = previousTime ? Math.min((now - previousTime) / 1000, 0.1) : 1 / 60;
+      const elapsed = previousTime ? (now - previousTime) / 1000 : 0;
+      const dt = elapsed ? Math.min(elapsed, 0.1) : 1 / 60;
       previousTime = now;
+      // Keep the optical wave responsive on slower GPUs. Only the artwork's
+      // render resolution changes; text and controls retain their full detail.
+      // A resumed tab starts with elapsed=0, so time spent hidden is ignored.
+      if (!motionPreference.matches && visible && !document.hidden && elapsed) {
+        slowFrames = elapsed > 0.055 ? slowFrames + 1 : 0;
+        if (slowFrames >= 2 && renderer.getPixelRatio() > 0.6) {
+          renderer.setPixelRatio(Math.max(0.6, renderer.getPixelRatio() * 0.7));
+          resize(false);
+          slowFrames = 0;
+        }
+      }
       const moving = !paused && !motionPreference.matches;
       if (moving) uniforms.uTime.value += dt;
       const ease = 1 - Math.exp(-dt * 10);
@@ -225,7 +254,9 @@ export async function initImageMorph(container, imageUrls) {
       updateTextures();
       renderer.render(scene, camera);
       const changing = Math.abs(progress - targetProgress) > 0.00005 || easedPointer.distanceToSquared(targetPointer) > 0.000001;
-      if (visible && !document.hidden && (moving || changing)) frameId = requestAnimationFrame(render);
+      const localProgress = uniforms.uProgress.value;
+      const ambientActive = moving && localProgress > 0.00005 && localProgress < 0.99995;
+      if (visible && !document.hidden && (ambientActive || changing)) frameId = requestAnimationFrame(render);
     };
 
     const requestRender = () => {

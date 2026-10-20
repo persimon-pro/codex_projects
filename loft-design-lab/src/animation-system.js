@@ -4,9 +4,10 @@ import Lenis from 'lenis';
 import 'lenis/dist/lenis.css';
 
 // Each library owns a separate layer: GSAP reveals the copy, Motion moves the
-// small CTA arrows, and Lenis smooths wheel input without replacing navigation.
+// CTA links and their arrows, and Lenis smooths wheel input without replacing navigation.
 export function initAnimationSystem(motionMediaQuery) {
   const reducedMotion = motionMediaQuery || window.matchMedia('(prefers-reduced-motion: reduce)');
+  const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
   const nestedScroll = '#mobileMenu, #videoModal, [role="dialog"], [data-lenis-prevent], [id^="loftAi"]';
   let destroyed = false;
   let lenis;
@@ -27,13 +28,22 @@ export function initAnimationSystem(motionMediaQuery) {
     const targets = [...copyElement.querySelectorAll('.cinema-title, .cinema-copy-bottom')];
     if (!targets.length) return;
     copyContext = gsap.context(() => {
-      copyTween = gsap.fromTo(targets, { autoAlpha: 0, y: 22 }, {
+      copyTween = gsap.fromTo(targets, {
+        autoAlpha: 0,
+        y: index => index === 0 ? 52 : 26,
+        rotationX: index => index === 0 ? 16 : 9,
+        transformPerspective: 1200,
+        transformOrigin: '50% 100%',
+        clipPath: 'inset(0% -4% 100% -4%)',
+      }, {
         autoAlpha: 1,
         y: 0,
-        duration: 0.85,
-        stagger: 0.12,
-        ease: 'power3.out',
-        clearProps: 'opacity,visibility,transform',
+        rotationX: 0,
+        clipPath: 'inset(-16% -4% -22% -4%)',
+        duration: 1.15,
+        stagger: 0.16,
+        ease: 'power4.out',
+        clearProps: 'opacity,visibility,transform,transformOrigin,clipPath',
       });
     }, copyElement);
   }
@@ -43,15 +53,70 @@ export function initAnimationSystem(motionMediaQuery) {
     if (!arrow) return [];
     const originalTransform = arrow.style.getPropertyValue('transform');
     const originalPriority = arrow.style.getPropertyPriority('transform');
+    const originalLinkTransform = link.style.getPropertyValue('transform');
+    const originalLinkPriority = link.style.getPropertyPriority('transform');
     let control;
+    let magneticControl;
+    let magneticFrame = 0;
+    let magneticBounds;
+    let pointer;
     let hovering = false;
     let focused = link.matches(':focus');
 
+    const restoreMagnet = () => {
+      cancelAnimationFrame(magneticFrame);
+      magneticFrame = 0;
+      magneticBounds = undefined;
+      magneticControl?.stop();
+      magneticControl = undefined;
+      if (originalLinkTransform) link.style.setProperty('transform', originalLinkTransform, originalLinkPriority);
+      else link.style.removeProperty('transform');
+    };
+    const moveMagnet = (x, y) => {
+      magneticControl?.stop();
+      magneticControl = animate(link, { x, y }, {
+        type: 'spring',
+        stiffness: 260,
+        damping: 24,
+        mass: 0.6,
+      });
+    };
+    const releaseMagnet = () => {
+      cancelAnimationFrame(magneticFrame);
+      magneticFrame = 0;
+      magneticBounds = undefined;
+      if (destroyed || reducedMotion.matches || !finePointer.matches) restoreMagnet();
+      else moveMagnet(0, 0);
+    };
+    const onPointerMove = event => {
+      if (destroyed || reducedMotion.matches || !finePointer.matches || focused || event.pointerType === 'touch') return;
+      pointer = { x: event.clientX, y: event.clientY };
+      if (!magneticBounds) {
+        const bounds = link.getBoundingClientRect();
+        // Store document coordinates so scrolling never feeds the link's own
+        // animated transform back into the magnetic target.
+        magneticBounds = {
+          left: bounds.left + window.scrollX,
+          top: bounds.top + window.scrollY,
+          width: bounds.width,
+          height: bounds.height,
+        };
+      }
+      if (magneticFrame) return;
+      magneticFrame = requestAnimationFrame(() => {
+        magneticFrame = 0;
+        if (destroyed || reducedMotion.matches || !finePointer.matches || focused || !magneticBounds) return;
+        const x = (pointer.x + window.scrollX - magneticBounds.left) / Math.max(1, magneticBounds.width) * 2 - 1;
+        const y = (pointer.y + window.scrollY - magneticBounds.top) / Math.max(1, magneticBounds.height) * 2 - 1;
+        moveMagnet(Math.max(-1, Math.min(1, x)) * 8, Math.max(-1, Math.min(1, y)) * 5);
+      });
+    };
     const restore = () => {
       control?.stop();
       control = undefined;
       if (originalTransform) arrow.style.setProperty('transform', originalTransform, originalPriority);
       else arrow.style.removeProperty('transform');
+      restoreMagnet();
     };
     const update = () => {
       if (destroyed || reducedMotion.matches) { restore(); return; }
@@ -65,17 +130,22 @@ export function initAnimationSystem(motionMediaQuery) {
     const stopHover = hover(link, () => {
       hovering = true;
       update();
-      return () => { hovering = false; update(); };
+      return () => { hovering = false; update(); releaseMagnet(); };
     });
-    const onFocus = () => { focused = true; update(); };
+    const onFocus = () => { focused = true; restoreMagnet(); update(); };
     const onBlur = () => { focused = false; update(); };
+    link.addEventListener('pointermove', onPointerMove, { passive: true });
+    link.addEventListener('pointercancel', releaseMagnet);
     link.addEventListener('focus', onFocus);
     link.addEventListener('blur', onBlur);
 
     return [{
       update,
+      syncPointer() { restoreMagnet(); },
       destroy() {
         stopHover();
+        link.removeEventListener('pointermove', onPointerMove);
+        link.removeEventListener('pointercancel', releaseMagnet);
         link.removeEventListener('focus', onFocus);
         link.removeEventListener('blur', onBlur);
         restore();
@@ -156,6 +226,8 @@ export function initAnimationSystem(motionMediaQuery) {
   };
 
   reducedMotion.addEventListener('change', syncMotion);
+  const syncPointer = () => arrowEffects.forEach(effect => effect.syncPointer());
+  finePointer.addEventListener('change', syncPointer);
   const bodyLockObserver = new MutationObserver(syncTicker);
   bodyLockObserver.observe(document.body, { attributes: true, attributeFilter: ['style'] });
   document.addEventListener('visibilitychange', syncTicker);
@@ -174,6 +246,7 @@ export function initAnimationSystem(motionMediaQuery) {
       arrowEffects.forEach(effect => effect.destroy());
       bodyLockObserver.disconnect();
       reducedMotion.removeEventListener('change', syncMotion);
+      finePointer.removeEventListener('change', syncPointer);
       document.removeEventListener('visibilitychange', syncTicker);
       window.removeEventListener('keydown', onKeyDown);
       document.removeEventListener('click', onAnchorClick);
