@@ -130,10 +130,12 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16x16.png?v=3">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=3">
   <link rel="preload" as="image" href="assets/images/cinema/obsidian.webp" type="image/webp" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/images/logo_rect_white.png" type="image/png" fetchpriority="high">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="loft-cinema.css">
   <link rel="stylesheet" href="site-choreography.css">
   <link rel="stylesheet" href="liquid-sculpture.css">
+  <link rel="stylesheet" href="logo-intro.css">
   <link rel="stylesheet" href="assets/js/loft-cinema.css">
   <script>document.documentElement.setAttribute('data-loft-loading', '');</script>
   <style>
@@ -152,9 +154,13 @@
 <body class="cinema-mode">
 
   <!-- Loader -->
-  <div class="loader" id="loader">
-    <div class="loader-line"></div>
-    <span class="loader-mark">Loft Creative House</span>
+  <div class="loader logo-intro" id="loader">
+    <div class="logo-intro-stage" role="img" aria-label="LOFT Creative House">
+      <canvas class="logo-intro-canvas" aria-hidden="true"></canvas>
+      <img class="logo-intro-mark" data-intro-logo src="assets/images/logo_rect_white.png" alt="" width="524" height="242" decoding="async" fetchpriority="high">
+    </div>
+    <span class="logo-intro-caption" aria-hidden="true">ANIMA IN SILICIO</span>
+    <button class="logo-intro-skip" data-intro-skip type="button"><span class="lang lang-ru">Пропустить</span><span class="lang lang-en">Skip intro</span><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 19 19 5M5 5h14v14" stroke="currentColor" stroke-width="1.25"/></svg></button>
   </div>
 
   <!-- Nav -->
@@ -2435,13 +2441,6 @@
         }
       });
     })();
-
-    document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(() => {
-        const loader = document.getElementById('loader');
-        if (loader) loader.classList.add('hidden');
-      }, 1000);
-    });
 
     const burger = document.getElementById('burger');
     const mobileMenu = document.getElementById('mobileMenu');
