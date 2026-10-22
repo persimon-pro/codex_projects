@@ -24,51 +24,49 @@ async function openHome(page, reducedMotion = 'reduce') {
   await expect(page.locator('.cinema-story h1')).toBeVisible();
   if (reducedMotion === 'no-preference') {
     await expect(page.locator('html')).toHaveClass(/\blenis\b/);
-    await page.locator('#cinemaPause').click();
-    await expect(page.locator('#cinemaPause')).toHaveAttribute('aria-pressed', 'true');
   }
 }
 
-async function expectReadableCopy(page, chapter) {
-  const copy = page.locator(`[data-cinema-copy="${chapter}"]`);
+async function expectReadableCopy(page) {
+  const copy = page.locator('[data-cinema-copy="0"]');
+  await expect(page.locator('.cinema-copy')).toHaveCount(1);
   await expect(copy).toBeVisible();
-  for (const selector of ['.cinema-title', '.cinema-copy-bottom']) {
-    const element = copy.locator(selector);
-    await expect(element).toHaveCSS('opacity', '1');
-    await expect(element).toBeVisible();
-  }
+  await expect(copy.locator('h1')).toHaveCSS('opacity', '1');
+  await expect(copy.locator('h1')).toBeVisible();
 }
 
-async function focusHeroLinkWithKeyboard(page) {
-  const link = page.locator('[data-cinema-copy="0"] .cinema-cta');
-  await page.locator('.nav-logo').focus();
-  for (let index = 0; index < 24; index += 1) {
-    await page.keyboard.press('Tab');
-    if (await link.evaluate(element => element === document.activeElement)) return link;
-  }
-  throw new Error('The main call to action must remain reachable with the keyboard.');
+async function scrollStory(page, progress) {
+  await page.evaluate(value => {
+    const story = document.querySelector('.cinema-story');
+    const top = story.getBoundingClientRect().top + scrollY;
+    scrollTo({ top: top + (story.offsetHeight - innerHeight) * value, behavior: 'instant' });
+  }, progress);
+  await expect.poll(async () => Number(await page.locator('.cinema-stage').getAttribute('data-progress'))).toBeCloseTo(progress, 2);
 }
 
-async function arrowTranslation(link) {
-  return link.locator('svg').evaluate(element => {
-    const style = getComputedStyle(element);
-    const matrix = style.transform === 'none' ? new DOMMatrix() : new DOMMatrix(style.transform);
-    const individual = style.translate === 'none' ? [0, 0] : style.translate.split(' ').map(value => parseFloat(value) || 0);
-    return Math.hypot(matrix.m41 + individual[0], matrix.m42 + (individual[1] || 0));
-  });
-}
-
-test('reduced motion keeps native scrolling and immediately readable chapter navigation', async ({ page }) => {
+test('reduced motion keeps native scrolling immediate and every form under a readable heading', async ({ page }) => {
   await openHome(page);
   await expect(page.locator('html')).not.toHaveClass(/\blenis\b/);
-  await page.locator('button[data-chapter="1"]').click();
-  await expect(page.locator('.cinema-stage')).toHaveAttribute('data-current-chapter', '1');
-  await expectReadableCopy(page, 1);
-  const position = await page.locator('.cinema-story').evaluate(story => {
-    const top = story.getBoundingClientRect().top + scrollY;
-    return (scrollY - top) / (story.offsetHeight - innerHeight);
-  });
-  expect(position).toBeCloseTo(0.5, 2);
+  for (const [index, form] of ['microphone', 'laptop', 'instagram'].entries()) {
+    const progress = (index + 1) / 3;
+    const positions = await page.evaluate(value => new Promise(resolve => {
+      const story = document.querySelector('.cinema-story');
+      const top = story.getBoundingClientRect().top + scrollY;
+      const target = top + (story.offsetHeight - innerHeight) * value;
+      const samples = [];
+      scrollTo({ top: target, behavior: 'instant' });
+      function sample() {
+        samples.push({ y: scrollY, target });
+        if (samples.length < 3) requestAnimationFrame(sample);
+        else resolve(samples);
+      }
+      requestAnimationFrame(sample);
+    }), progress);
+    expect(positions.every(({ y, target }) => Math.abs(y - target) <= 1), 'Native scrolling reaches its destination on the first frame and remains there').toBe(true);
+    await expect.poll(async () => Number(await page.locator('.cinema-stage').getAttribute('data-progress'))).toBeCloseTo(progress, 2);
+    await expect(page.locator('.cinema-stage')).toHaveAttribute('data-current-form', form);
+    await expectReadableCopy(page);
+  }
 });
 
 test('desktop wheel input advances through intermediate scroll positions and settles at its target', async ({ page }, testInfo) => {
@@ -94,37 +92,28 @@ test('desktop wheel input advances through intermediate scroll positions and set
   const intermediate = new Set(samples.filter(value => value > start + 2 && value < start + 498).map(value => Math.round(value)));
   expect(intermediate.size, 'Wheel input visibly moves through several positions before reaching its final offset').toBeGreaterThan(2);
   const progress = Number(await page.locator('.cinema-stage').getAttribute('data-progress'));
-  expect(progress, 'The existing image story follows the smoothed native scroll position').toBeGreaterThan(0.2);
+  const scrollProgress = await page.locator('.cinema-story').evaluate(story => {
+    const top = story.getBoundingClientRect().top + scrollY;
+    return (scrollY - top) / (story.offsetHeight - innerHeight);
+  });
+  expect(progress, 'The object transformation follows the actual smoothed native scroll position').toBeCloseTo(scrollProgress, 2);
+  expect(progress).toBeGreaterThan(0);
 });
 
-test('switching to reduced motion removes smoothing without moving or hiding the current chapter', async ({ page }) => {
+test('switching to reduced motion removes smoothing without moving or hiding the current form', async ({ page }) => {
   await openHome(page, 'no-preference');
-  await page.locator('button[data-chapter="1"]').click();
-  await expect(page.locator('.cinema-stage')).toHaveAttribute('data-current-chapter', '1');
-  await expectReadableCopy(page, 1);
+  await scrollStory(page, 2 / 3);
+  await expect(page.locator('.cinema-stage')).toHaveAttribute('data-current-form', 'laptop');
+  await expectReadableCopy(page);
   const before = await page.evaluate(() => scrollY);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await expect(page.locator('html')).not.toHaveClass(/\blenis\b/);
   expect(await page.evaluate(() => scrollY), 'Changing the accessibility preference keeps the current reading position').toBeCloseTo(before, 0);
-  await expectReadableCopy(page, 1);
-  await page.locator('button[data-chapter="2"]').click();
-  await expect(page.locator('.cinema-stage')).toHaveAttribute('data-current-chapter', '2');
-  await expectReadableCopy(page, 2);
-});
-
-test('keyboard focus animates the action arrow and reduced motion keeps it still', async ({ page }) => {
-  await openHome(page, 'no-preference');
-  const link = await focusHeroLinkWithKeyboard(page);
-  await expect(link).toBeFocused();
-  await expect.poll(() => arrowTranslation(link)).toBeGreaterThan(2);
-  await page.keyboard.press('Tab');
-  await expect.poll(() => arrowTranslation(link)).toBeLessThan(0.1);
-  await page.emulateMedia({ reducedMotion: 'reduce' });
-  const reducedLink = await focusHeroLinkWithKeyboard(page);
-  await expect(reducedLink).toBeFocused();
-  await expect.poll(() => arrowTranslation(reducedLink)).toBeLessThan(0.1);
-  await page.keyboard.press('Tab');
-  expect(await arrowTranslation(reducedLink)).toBeLessThan(0.1);
+  await expect(page.locator('.cinema-stage')).toHaveAttribute('data-current-form', 'laptop');
+  await expectReadableCopy(page);
+  await scrollStory(page, 1);
+  await expect(page.locator('.cinema-stage')).toHaveAttribute('data-current-form', 'instagram');
+  await expectReadableCopy(page);
 });
 
 test('opening the mobile menu stops pending wheel motion until Escape closes it', async ({ page }, testInfo) => {
@@ -157,28 +146,6 @@ test('opening the mobile menu stops pending wheel motion until Escape closes it'
   await expect(page.locator('#mobileMenu')).toBeHidden();
   await page.mouse.wheel(0, 400);
   await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(held + 100);
-});
-
-test('chapter zero heading visibly fades in again after returning from another chapter', async ({ page }) => {
-  await openHome(page, 'no-preference');
-  await page.locator('button[data-chapter="1"]').click();
-  await expectReadableCopy(page, 1);
-  await page.locator('.cinema-story h1').evaluate(heading => {
-    window.__headingOpacitySamples = [];
-    window.__headingStyleObserver = new MutationObserver(() => {
-      window.__headingOpacitySamples.push(Number(getComputedStyle(heading).opacity));
-    });
-    window.__headingStyleObserver.observe(heading, { attributes: true, attributeFilter: ['style'] });
-  });
-  await page.locator('button[data-chapter="0"]').click();
-  await expect(page.locator('.cinema-stage')).toHaveAttribute('data-current-chapter', '0');
-  await expectReadableCopy(page, 0);
-  const samples = await page.evaluate(() => {
-    window.__headingStyleObserver.disconnect();
-    return window.__headingOpacitySamples;
-  });
-  expect(samples.some(opacity => opacity < 0.95), 'The rendered heading fades in; a CSS fill animation must not override the reveal').toBe(true);
-  await expect(page.locator('.cinema-story h1')).toHaveCSS('opacity', '1');
 });
 
 test('reduced-motion work anchor reaches its destination on the first frame without scrolling animation', async ({ page }, testInfo) => {

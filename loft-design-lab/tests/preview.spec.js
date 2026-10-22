@@ -36,12 +36,14 @@ async function navigate(page, pathname) {
 }
 
 async function expectStaticContent(page, { bootstrapRan = false } = {}) {
-  await expect(page.locator('canvas.loft-morph-canvas')).toHaveCount(0);
+  await expect(page.locator('.cinema-visual canvas')).toHaveCount(0);
   const fallback = page.locator('.cinema-fallback');
   await expect(fallback).toBeVisible();
   await expect.poll(() => fallback.evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true);
   await expect(page.locator('.cinema-story h1')).toBeVisible();
-  await expect(page.locator('[data-cinema-copy="0"] .cinema-cta')).toBeVisible();
+  await expect(page.locator('.cinema-copy')).toHaveCount(1);
+  await expect(page.locator('[data-cinema-copy="0"]')).toBeVisible();
+  await expect(page.locator('.cinema-story button, .cinema-story a, .cinema-story p, .cinema-story small')).toHaveCount(0);
   await expect(page.locator('html')).not.toHaveAttribute('data-loft-reveal', '');
   expect(await page.locator('.reveal').count()).toBeGreaterThan(5);
   const hiddenReveals = await page.locator('.reveal').evaluateAll(elements => elements.filter(element => {
@@ -66,19 +68,19 @@ async function applyScriptPolicy(page, policy) {
   });
 }
 
-test('portable HTTP preview renders real WebGL, chapters and five inline portraits without asset requests or errors', async ({ page, baseURL }, testInfo) => {
-  const externalRequests = [];
+test('portable HTTP preview renders four WebGL forms and five inline portraits without HTTP subresources or errors', async ({ page }, testInfo) => {
+  const assetRequests = [];
   const errors = [];
   page.on('request', request => {
     const url = new URL(request.url());
-    if (/^https?:$/.test(url.protocol) && url.origin !== new URL(baseURL).origin) externalRequests.push(request.url());
+    if (/^https?:$/.test(url.protocol) && request.resourceType() !== 'document') assetRequests.push(request.url());
   });
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
   await navigate(page, previewPath);
   await expect(page.locator('#loader')).toBeHidden();
   await expect(page.locator('.cinema-visual')).toHaveClass(/is-ready/);
-  const canvas = page.locator('canvas.loft-morph-canvas');
+  const canvas = page.locator('.cinema-visual canvas');
   await expect(canvas).toBeVisible();
   const graphics = await canvas.evaluate(element => {
     const gl = element.getContext('webgl2') || element.getContext('webgl');
@@ -89,6 +91,8 @@ test('portable HTTP preview renders real WebGL, chapters and five inline portrai
   expect(graphics.width).toBeGreaterThan(100);
   expect(graphics.lost).toBe(false);
   await expect(page.locator('.cinema-story h1')).toBeVisible();
+  await expect(page.locator('.cinema-copy')).toHaveCount(1);
+  await expect(page.locator('.cinema-story button, .cinema-story a, .cinema-story p, .cinema-story small')).toHaveCount(0);
   await expect(page.locator('video')).toHaveCount(0);
   const portraits = page.locator('#artists .artist-photo img');
   await expect(portraits).toHaveCount(5);
@@ -101,12 +105,25 @@ test('portable HTTP preview renders real WebGL, chapters and five inline portrai
   if (await noteClose.isVisible()) await noteClose.click();
   if (testInfo.project.name === 'desktop') await page.screenshot({ path: '/tmp/loft-preview-fixed.png' });
 
-  await page.locator('button[data-chapter="2"]').click();
-  await expect(page.locator('button[data-chapter="2"]')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('.cinema-stage')).toHaveAttribute('data-current-chapter', '2');
-  await expect(page.locator('[data-cinema-copy="2"]')).toBeVisible();
-  await expect.poll(async () => Number(await page.locator('.cinema-stage').getAttribute('data-progress'))).toBeCloseTo(1, 2);
-  expect(externalRequests, 'Portable assets never require an external host').toEqual([]);
+  const fallbackSources = await page.evaluate(() => window.__LOFT_DEVICE_FALLBACKS__);
+  expect(fallbackSources).toHaveLength(4);
+  expect(new Set(fallbackSources).size, 'Every form has its own embedded fallback').toBe(4);
+  for (const source of fallbackSources) expect(source).toMatch(/^data:image\/svg\+xml;base64,/);
+  for (const [index, form] of ['camera', 'microphone', 'laptop', 'instagram'].entries()) {
+    const progress = index / 3;
+    await page.evaluate(value => {
+      const story = document.querySelector('.cinema-story');
+      const top = story.getBoundingClientRect().top + scrollY;
+      scrollTo({ top: top + (story.offsetHeight - innerHeight) * value, behavior: 'instant' });
+    }, progress);
+    await expect.poll(async () => Number(await page.locator('.cinema-stage').getAttribute('data-progress'))).toBeCloseTo(progress, 2);
+    await expect(page.locator('.cinema-stage')).toHaveAttribute('data-current-form', form);
+    await expect(page.locator('.cinema-story h1')).toBeVisible();
+    const fallback = page.locator('.cinema-fallback');
+    await expect(fallback).toHaveAttribute('src', fallbackSources[index]);
+    await expect.poll(() => fallback.evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true);
+  }
+  expect(assetRequests, 'The portable preview requests no HTTP assets from its own origin or another host').toEqual([]);
   expect(errors, 'The portable document has no runtime, shader or asset errors').toEqual([]);
 });
 

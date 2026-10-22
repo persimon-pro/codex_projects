@@ -34,7 +34,7 @@ const translation = element => {
   return { x: matrix.m41, y: matrix.m42 };
 };
 
-test('desktop pointer adds depth and a magnetic action, then returns both to rest', async ({ page }, testInfo) => {
+test('desktop pointer adds depth to the persistent heading and returns it to rest', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', 'Touch has no hover effects.');
   await openAnimated(page);
   const stage = page.locator('.cinema-stage');
@@ -42,13 +42,10 @@ test('desktop pointer adds depth and a magnetic action, then returns both to res
   await expect.poll(() => stage.evaluate(element => parseFloat(element.style.getPropertyValue('--cinema-copy-x')) || 0)).toBeGreaterThan(3);
   await expect.poll(async () => (await page.locator('[data-cinema-copy="0"]').evaluate(translation)).x).toBeGreaterThan(2);
 
-  const link = page.locator('[data-cinema-copy="0"] .cinema-cta');
-  const bounds = await link.boundingBox();
-  await page.mouse.move(bounds.x + bounds.width * .85, bounds.y + bounds.height * .65);
-  await expect.poll(async () => Math.abs((await link.evaluate(translation)).x)).toBeGreaterThan(1);
   await page.locator('.nav-logo').hover();
   await expect.poll(() => stage.evaluate(element => element.style.getPropertyValue('--cinema-copy-x'))).toBe('');
-  await expect.poll(async () => Math.abs((await link.evaluate(translation)).x)).toBeLessThan(.1);
+  await expect.poll(async () => Math.abs((await page.locator('[data-cinema-copy="0"]').evaluate(translation)).x)).toBeLessThan(.1);
+  await expect(page.locator('.cinema-story button, .cinema-story a')).toHaveCount(0);
 });
 
 test('reduced motion clears pointer depth and scroll effects without hiding content or restoring small labels', async ({ page }) => {
@@ -59,12 +56,17 @@ test('reduced motion clears pointer depth and scroll effects without hiding cont
   await expect(page.locator('.cinema-media-depth')).toHaveCount(0);
   await page.mouse.move(350, 350);
   expect(await page.locator('.cinema-stage').evaluate(element => element.style.getPropertyValue('--cinema-copy-x'))).toBe('');
-  await page.locator('button[data-chapter="1"]').click();
-  await expect(page.locator('[data-cinema-copy="1"] .cinema-title')).toHaveCSS('opacity', '1');
-  await expect(page.locator('[data-cinema-copy="1"] .cinema-title')).toHaveCSS('clip-path', 'none');
+  await page.evaluate(() => {
+    const story = document.querySelector('.cinema-story');
+    scrollTo({ top: story.getBoundingClientRect().top + scrollY + (story.offsetHeight - innerHeight) * 2 / 3, behavior: 'instant' });
+  });
+  await expect(page.locator('.cinema-stage')).toHaveAttribute('data-current-form', 'laptop');
+  await expect(page.locator('[data-cinema-copy="0"] .cinema-title')).toHaveCSS('opacity', '1');
+  await expect(page.locator('[data-cinema-copy="0"] .cinema-title')).toHaveCSS('clip-path', 'none');
+  await expect(page.locator('.cinema-copy')).toHaveCount(1);
   const heroText = await page.locator('.cinema-story').innerText();
   expect(heroText).not.toMatch(/INDEPENDENT CREATIVE HOUSE|ИЗ ВООБРАЖЕНИЯ|OBSIDIAN|AUREA|ALBA/);
-  expect(await page.locator('button[data-chapter]').allTextContents()).toEqual(['', '', '']);
+  await expect(page.locator('.cinema-story button, .cinema-story a, .cinema-story p, .cinema-story small')).toHaveCount(0);
   await page.evaluate(() => document.getElementById('work').scrollIntoView({ behavior: 'instant' }));
   await expect(page.locator('#work .section-title')).toBeVisible();
   await expect(page.locator('#work .section-title')).toHaveCSS('clip-path', 'none');
