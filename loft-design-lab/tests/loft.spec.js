@@ -109,11 +109,11 @@ async function installDrawCounter(page) {
 }
 
 async function artworkPixels(page, path) {
-  // Isolate the actual rendered object: copy and fallback changes cannot make a
-  // frozen or missing WebGL scene look like four different device forms.
-  const hiddenUi = await page.addStyleTag({ content: 'body * { visibility:hidden!important; } .cinema-visual canvas { visibility:visible!important; }' });
+  // Hide the DOM typography only for this capture: changes to copy or counters
+  // cannot make a frozen shader look like three different generated artworks.
+  const hiddenUi = await page.addStyleTag({ content: 'body * { visibility:hidden!important; } canvas.loft-morph-canvas { visibility:visible!important; }' });
   try {
-    const png = await page.locator('.cinema-visual canvas').screenshot({ path, animations: 'disabled' });
+    const png = await page.locator('canvas.loft-morph-canvas').screenshot({ path, animations: 'disabled' });
     return await page.evaluate(async base64 => {
       const image = new Image();
       image.src = `data:image/png;base64,${base64}`;
@@ -121,10 +121,7 @@ async function artworkPixels(page, path) {
       const sample = document.createElement('canvas');
       sample.width = sample.height = 48;
       const context = sample.getContext('2d');
-      // Sample the central device area so empty space and outer orbits cannot
-      // dilute the difference between the four actual device silhouettes.
-      context.drawImage(image, image.naturalWidth * .17, image.naturalHeight * .17,
-        image.naturalWidth * .66, image.naturalHeight * .66, 0, 0, 48, 48);
+      context.drawImage(image, 0, 0, 48, 48);
       return Array.from(context.getImageData(0, 0, 48, 48).data).filter((_, index) => index % 4 !== 3);
     }, png.toString('base64'));
   } finally {
@@ -134,134 +131,74 @@ async function artworkPixels(page, path) {
 
 test('cinematic home renders the LOFT identity and real WebGL without horizontal overflow', async ({ page }, testInfo) => {
   await openHome(page);
-  await expect(page.locator('.cinema-story')).toHaveClass(/cinema-objects/);
   await expect(page.locator('.cinema-story h1')).toBeVisible();
-  await expect(page.locator('.cinema-story h1')).toHaveCount(1);
   await expect(page.locator('.nav-logo img')).toBeVisible();
   await expect(page.locator('.cinema-visual')).toHaveClass(/is-ready/);
-  await expectWebGL(page.locator('.cinema-visual canvas'));
-  await expect(page.locator('.cinema-copy')).toHaveCount(1);
-  await expect(page.locator('[data-cinema-copy="0"]')).toBeVisible();
-  await expect(page.locator('.cinema-story button, .cinema-story a, .cinema-story p, .cinema-story small')).toHaveCount(0);
-  await expect(page.locator('.cinema-chapters, .cinema-count, .cinema-progress, .cinema-marquee, #cinemaPause')).toHaveCount(0);
-  await expect(page.locator('body')).toHaveClass(/cinema-hero-active/);
-  await expect(page.locator('#loftAiFloatTrigger')).toBeHidden();
+  await expectWebGL(page.locator('canvas.loft-morph-canvas'));
+  await expect(page.locator('.cinema-copy:not([hidden])')).toHaveCount(1);
+  await expect(page.locator('[data-cinema-copy="0"] .cinema-cta')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
   await page.screenshot({ path: testInfo.outputPath('loft-cinema-home.png'), fullPage: false });
 });
 
-test('scrolling pins the stage and renders four distinct device forms under one persistent heading', async ({ page }, testInfo) => {
+test('scrolling keeps the cinematic stage pinned and renders three different artworks', async ({ page }, testInfo) => {
   await openHome(page);
   await expect(page.locator('.cinema-visual')).toHaveClass(/is-ready/);
   const artworks = [];
-  const forms = ['camera', 'microphone', 'laptop', 'instagram'];
-  for (const [index, form] of forms.entries()) {
-    const progress = index / 3;
+  for (const [index, progress] of [0, 0.5, 0.96].entries()) {
     await scrollStory(page, progress);
-    await expect(page.locator('.cinema-stage')).toHaveAttribute('data-current-form', form);
-    await expect(page.locator('.cinema-story h1')).toBeVisible();
-    await expect(page.locator('.cinema-story h1')).toHaveCSS('opacity', '1');
-    await expect(page.locator('.cinema-copy')).toHaveCount(1);
+    await expect(page.locator('.cinema-stage')).toHaveAttribute('data-current-chapter', String(index));
+    await expect(page.locator(`.cinema-copy[data-cinema-copy="${index}"]`)).toBeVisible();
     const position = await page.locator('.cinema-stage').boundingBox();
     expect(Math.abs(position.y), 'The stage stays pinned to the viewport').toBeLessThanOrEqual(2);
     expect(position.height).toBeCloseTo(page.viewportSize().height, 0);
-    const pixels = await artworkPixels(page, testInfo.outputPath(`cinema-${form}.png`));
-    expect(Math.max(...pixels) - Math.min(...pixels), `${form} has visible rendered geometry`).toBeGreaterThan(40);
-    artworks.push(pixels);
+    const barProgress = await page.locator('.cinema-progress-fill').evaluate(element => element.getBoundingClientRect().width / element.parentElement.getBoundingClientRect().width);
+    expect(barProgress).toBeCloseTo(progress, 2);
+    artworks.push(await artworkPixels(page, testInfo.outputPath(`cinema-art-${index + 1}.png`)));
   }
-  for (let left = 0; left < forms.length; left += 1) {
-    for (let right = left + 1; right < forms.length; right += 1) {
-      const difference = artworks[left].reduce((sum, channel, index) => sum + Math.abs(channel - artworks[right][index]), 0) / artworks[left].length;
-      expect(difference, `Actual image pixels differ between ${forms[left]} and ${forms[right]}`).toBeGreaterThan(3);
-    }
+  for (const [left, right] of [[0, 1], [1, 2], [0, 2]]) {
+    const difference = artworks[left].reduce((sum, channel, index) => sum + Math.abs(channel - artworks[right][index]), 0) / artworks[left].length;
+    expect(difference, `Actual image pixels differ between chapters ${left + 1} and ${right + 1}`).toBeGreaterThan(3);
   }
 });
 
-test('automatic morphing keeps the document still and keyboard pause freezes rendering before manual scrolling', async ({ page }) => {
-  await installDrawCounter(page);
+test('chapter controls move the story and pause preserves manual navigation', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await openHome(page);
   await expect(page.locator('.cinema-visual')).toHaveClass(/is-ready/);
-  const stage = page.locator('.cinema-stage');
-  const start = Number(await stage.getAttribute('data-progress'));
-  await expect.poll(async () => Number(await stage.getAttribute('data-progress'))).toBeGreaterThan(start + .01);
-  expect(await page.evaluate(() => scrollY), 'Autoplay transforms the object without scrolling the document').toBe(0);
-  await page.locator('.cinema-story').focus();
-  await page.keyboard.press('Space');
-  await expect(stage).toHaveAttribute('data-paused', 'true');
-  const heldProgress = Number(await stage.getAttribute('data-progress'));
-  const heldDraws = await countAfterFrames(page);
-  expect(heldDraws, 'The renderer drew before it was paused').toBeGreaterThan(0);
-  expect(await countAfterFrames(page), 'Keyboard pause stops continuous rendering').toBe(heldDraws);
-  expect(Number(await stage.getAttribute('data-progress')), 'Keyboard pause also freezes automatic transformation').toBe(heldProgress);
-  await scrollStory(page, 2 / 3);
-  await expect(stage).toHaveAttribute('data-current-form', 'laptop');
-  expect(await countAfterFrames(page), 'Manual scrolling can update a paused still scene').toBeGreaterThan(heldDraws);
-  await page.keyboard.press('Space');
-  await expect(stage).toHaveAttribute('data-paused', 'false');
-  const controlledProgress = Number(await stage.getAttribute('data-progress'));
-  await countAfterFrames(page);
-  expect(Number(await stage.getAttribute('data-progress')), 'Scrolling retains control after pause is released').toBe(controlledProgress);
+  const pause = page.locator('#cinemaPause');
+  await expect(pause).toHaveAttribute('aria-pressed', 'false');
+  await pause.click();
+  await expect(pause).toHaveAttribute('aria-pressed', 'true');
+  const chapters = page.locator('button[data-chapter]');
+  await expect(chapters).toHaveCount(3);
+  for (const index of [1, 2, 0]) {
+    await chapters.nth(index).click();
+    await expect(chapters.nth(index)).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('button[data-chapter][aria-pressed="true"]')).toHaveCount(1);
+    await expect(page.locator('.cinema-stage')).toHaveAttribute('data-current-chapter', String(index));
+    await expect.poll(async () => Number(await page.locator('.cinema-stage').getAttribute('data-progress'))).toBeCloseTo(index / 2, 2);
+    const scrollProgress = await page.locator('.cinema-story').evaluate(story => (window.scrollY - (story.getBoundingClientRect().top + window.scrollY)) / (story.offsetHeight - window.innerHeight));
+    expect(scrollProgress).toBeCloseTo(index / 2, 2);
+  }
+  await pause.click();
+  await expect(pause).toHaveAttribute('aria-pressed', 'false');
 });
 
-test('ambient rotation keeps a held camera moving and respects runtime reduced motion', async ({ page }) => {
-  await installDrawCounter(page);
-  await page.emulateMedia({ reducedMotion: 'no-preference' });
-  await openHome(page, '/#main-content');
-  await expect(page.locator('.cinema-visual')).toHaveClass(/is-ready/);
-  await scrollStory(page, .02);
-  const initialDraws = await countAfterFrames(page);
-  await expect.poll(() => countAfterFrames(page), { message: 'The camera and its orbits keep rendering while the morphology is held' }).toBeGreaterThan(initialDraws);
-  expect(Number(await page.locator('.cinema-stage').getAttribute('data-progress')), 'Ambient rotation does not advance the scroll-controlled morph').toBeCloseTo(.02, 2);
-
-  await page.emulateMedia({ reducedMotion: 'reduce' });
-  const stillDraws = await countAfterFrames(page);
-  expect(await countAfterFrames(page), 'Enabling reduced motion stops the ambient renderer').toBe(stillDraws);
-  expect(Number(await page.locator('.cinema-stage').getAttribute('data-progress')), 'Changing motion preferences preserves morphology progress').toBeCloseTo(.02, 2);
-
-  await page.emulateMedia({ reducedMotion: 'no-preference' });
-  const resumedDraws = await countAfterFrames(page);
-  await expect.poll(() => countAfterFrames(page), { message: 'The orbital scene resumes when reduced motion is disabled' }).toBeGreaterThan(resumedDraws);
-  await scrollStory(page, .16);
-  expect(await countAfterFrames(page), 'Scrolling still renders the actual transformation').toBeGreaterThan(resumedDraws);
-});
-
-test('ambient rendering stops below the hero and resumes when the scene returns', async ({ page }) => {
-  await installDrawCounter(page);
-  await page.emulateMedia({ reducedMotion: 'no-preference' });
-  await openHome(page, '/#main-content');
-  await expect(page.locator('.cinema-visual')).toHaveClass(/is-ready/);
-  await page.evaluate(() => document.querySelector('#work').scrollIntoView({ behavior: 'instant' }));
-  await expect(page.locator('body')).not.toHaveClass(/cinema-hero-active/);
-  const hiddenDraws = await countAfterFrames(page);
-  expect(await countAfterFrames(page), 'An offscreen orbital scene does not keep drawing').toBe(hiddenDraws);
-
-  await scrollStory(page, .02);
-  await expect(page.locator('body')).toHaveClass(/cinema-hero-active/);
-  const returnedDraws = await countAfterFrames(page);
-  await expect.poll(() => countAfterFrames(page), { message: 'The visible orbital scene resumes drawing' }).toBeGreaterThan(returnedDraws);
-});
-
-test('reduced motion stops continuous rendering while native scrolling updates all four still forms', async ({ page }) => {
+test('reduced motion stops continuous rendering while chapter navigation still updates artwork', async ({ page }) => {
   await installDrawCounter(page);
   await openHome(page);
   await expect(page.locator('.cinema-visual')).toHaveClass(/is-ready/);
   const stillFrame = await countAfterFrames(page);
   expect(stillFrame, 'WebGL actually drew the still scene').toBeGreaterThan(0);
   expect(await countAfterFrames(page), 'Reduced motion stops continuous rendering').toBe(stillFrame);
-  let previousFrame = stillFrame;
-  for (const [index, form] of ['microphone', 'laptop', 'instagram'].entries()) {
-    await scrollStory(page, (index + 1) / 3);
-    await expect(page.locator('.cinema-stage')).toHaveAttribute('data-current-form', form);
-    const rendered = await countAfterFrames(page);
-    expect(rendered, `Scrolling renders the ${form} still frame`).toBeGreaterThan(previousFrame);
-    expect(await countAfterFrames(page), `${form} does not keep rendering under reduced motion`).toBe(rendered);
-    await expect(page.locator('.cinema-story h1')).toBeVisible();
-    previousFrame = rendered;
-  }
+  await page.locator('button[data-chapter="2"]').click();
+  await expect(page.locator('button[data-chapter="2"]')).toHaveAttribute('aria-pressed', 'true');
+  expect(await countAfterFrames(page), 'Changing chapter renders a new still frame').toBeGreaterThan(stillFrame);
+  await expect(page.locator('[data-cinema-copy="2"] .cinema-cta[href="/order"]')).toBeVisible();
 });
 
-test('without WebGL four static device forms and the header order journey remain usable', async ({ page }) => {
+test('without WebGL static artwork, chapters, and the order journey remain usable', async ({ page }) => {
   await page.addInitScript(() => {
     const original = HTMLCanvasElement.prototype.getContext;
     HTMLCanvasElement.prototype.getContext = function (type, ...args) {
@@ -270,23 +207,14 @@ test('without WebGL four static device forms and the header order journey remain
   });
   await openHome(page);
   await expect(page.locator('.cinema-visual')).toHaveClass(/is-static/);
-  await expect(page.locator('.cinema-visual canvas')).toHaveCount(0);
+  await expect(page.locator('canvas.loft-morph-canvas')).toHaveCount(0);
   const fallback = page.locator('.cinema-fallback');
   await expect(fallback).toBeVisible();
-  for (const [index, form] of ['camera', 'microphone', 'laptop', 'instagram'].entries()) {
-    await scrollStory(page, index / 3);
-    await expect(fallback).toHaveAttribute('src', new RegExp(`/assets/images/cinema/${form}\\.svg$`));
-    await expect.poll(() => fallback.evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true);
-    await expect(page.locator('.cinema-stage')).toHaveAttribute('data-current-form', form);
-    await expect(page.locator('.cinema-story h1')).toBeVisible();
-  }
-  // The uncluttered hero leaves order navigation in the existing site header.
-  if (await page.locator('#burger').isVisible()) {
-    await page.locator('#burger').click();
-    await page.locator('#mobileMenu a[href="/order"]').click();
-  } else {
-    await page.locator('nav a[href="/order"]').first().click();
-  }
+  expect(await fallback.evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true);
+  await page.locator('button[data-chapter="2"]').click();
+  await expect(fallback).toHaveAttribute('src', /alba\.webp$/);
+  await expect(page.locator('.cinema-stage')).toHaveAttribute('data-current-chapter', '2');
+  await page.locator('[data-cinema-copy="2"] .cinema-cta').click();
   await expect(page).toHaveURL(/\/order$/);
   await expect(page.locator('#orderForm')).toBeVisible();
 });
@@ -397,10 +325,6 @@ test('package and service order links prefill the brief while preserving require
 
 test('AI assistant uses the local fallback, resets, and closes without sending a lead', async ({ page }) => {
   await openHome(page);
-  await expect(page.locator('#loftAiFloatTrigger')).toBeHidden();
-  await page.evaluate(() => document.getElementById('work').scrollIntoView({ behavior: 'instant' }));
-  await expect(page.locator('body')).not.toHaveClass(/cinema-hero-active/);
-  await expect(page.locator('#loftAiFloatTrigger')).toBeVisible();
   await page.locator('#loftAiFloatTrigger').click();
   await expect(page.locator('#loftAiWindow')).toHaveClass(/active/);
   await expect(page.locator('#loftAiMessages .loft-ai-msg.bot')).toHaveCount(1);

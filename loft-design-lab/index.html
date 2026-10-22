@@ -205,16 +205,36 @@
     </ul>
   </div>
 
-  <!-- LOFT Cinema: one object transforms through four creative disciplines. -->
+  <!-- LOFT Cinema: three generated artworks become one continuous material. -->
   <main id="main-content">
-  <section class="cinema-story cinema-objects" tabindex="0" aria-keyshortcuts="Space" aria-label="LOFT — камера, микрофон, ноутбук и Instagram в единой трёхмерной форме">
-    <div class="cinema-stage" data-progress="0" data-current-form="camera">
-      <div class="cinema-visual" aria-hidden="true"><img class="cinema-fallback" src="/assets/images/cinema/camera.svg" alt="" fetchpriority="high" decoding="async"></div>
+  <section class="cinema-story" aria-label="LOFT — искусство невозможного">
+    <div class="cinema-stage" data-progress="0" data-current-chapter="0">
+      <div class="cinema-visual" aria-hidden="true"><img class="cinema-fallback" src="assets/images/cinema/obsidian.webp" alt="" fetchpriority="high" decoding="async"></div>
+      <div class="cinema-shade" aria-hidden="true"></div>
+      <div class="cinema-grain" aria-hidden="true"></div>
+      <div class="cinema-topline"><span>DUSHANBE · WORLDWIDE</span></div>
       <div class="cinema-copy" data-cinema-copy="0">
         <h1 class="cinema-title hero-title"><span class="lang lang-ru">Воплощаем<br><em>невозможное.</em></span><span class="lang lang-en">We make<br><em>the impossible.</em></span></h1>
+        <div class="cinema-copy-bottom"><p><span class="lang lang-ru">На стыке искусства, стратегии и технологий.<br>Создаём образы, которые становятся событиями.</span><span class="lang lang-en">At the intersection of art, strategy and technology.<br>We create images that become experiences.</span></p><a class="cinema-cta" href="/order"><span class="lang lang-ru">Создать нечто особенное</span><span class="lang lang-en">Create something extraordinary</span><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 19 19 5M5 5h14v14" stroke="currentColor" stroke-width="1.25"/></svg></a></div>
       </div>
+      <div class="cinema-copy" data-cinema-copy="1" hidden>
+        <h2 class="cinema-title"><span class="lang lang-ru">Меняем<br><em>восприятие.</em></span><span class="lang lang-en">Shifting<br><em>perceptions.</em></span></h2>
+        <div class="cinema-copy-bottom"><p><span class="lang lang-ru">Кино, бренды и цифровые миры.<br>Форма меняется. Впечатление остаётся.</span><span class="lang lang-en">Film, brands and digital worlds.<br>The form changes. The impression stays.</span></p><a class="cinema-cta" href="#work"><span class="lang lang-ru">Взгляд на наши работы</span><span class="lang lang-en">Explore our work</span><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 19 19 5M5 5h14v14" stroke="currentColor" stroke-width="1.25"/></svg></a></div>
+      </div>
+      <div class="cinema-copy" data-cinema-copy="2" hidden>
+        <h2 class="cinema-title"><span class="lang lang-ru">Создаём<br><em>притяжение.</em></span><span class="lang lang-en">Beyond<br><em>the ordinary.</em></span></h2>
+        <div class="cinema-copy-bottom"><p><span class="lang lang-ru">От первой мысли до последнего кадра.<br>Всё, чтобы ваш бренд невозможно было забыть.</span><span class="lang lang-en">From the first thought to the final frame.<br>Everything to make your brand unforgettable.</span></p><a class="cinema-cta" href="/order"><span class="lang lang-ru">Начнём с вашей идеи</span><span class="lang lang-en">Let's start with your idea</span><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 19 19 5M5 5h14v14" stroke="currentColor" stroke-width="1.25"/></svg></a></div>
+      </div>
+      <div class="cinema-sideword" aria-hidden="true">ANIMA IN SILICIO</div>
+      <div class="cinema-bottomline">
+        <div class="cinema-scroll"><span class="cinema-scroll-icon">↓</span><span class="lang lang-ru">Листайте. Реальность меняется.</span><span class="lang lang-en">Scroll. Watch reality transform.</span></div>
+        <div class="cinema-chapters" role="group" aria-label="Сцены визуальной истории"><button data-chapter="0" type="button" aria-label="Глава 1: Исток" aria-pressed="true"></button><button data-chapter="1" type="button" aria-label="Глава 2: Превращение" aria-pressed="false"></button><button data-chapter="2" type="button" aria-label="Глава 3: Новая реальность" aria-pressed="false"></button><button id="cinemaPause" type="button" aria-label="Приостановить движение" aria-pressed="false"><svg class="cinema-pause-icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M4 3h2v10H4zM10 3h2v10h-2z"/></svg><svg class="cinema-play-icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="m4 2 9 6-9 6z"/></svg></button></div>
+        <div class="cinema-count"><span class="cinema-current">01</span><i>/</i><span>03</span></div>
+      </div>
+      <div class="cinema-progress" aria-hidden="true"><div class="cinema-progress-fill"></div></div>
     </div>
   </section>
+  <div class="cinema-marquee" aria-hidden="true"><div>THE ART OF MAKING IT REAL <i>✦</i> STRATEGY · FILM · AI · DIGITAL <i>✦</i> THE ART OF MAKING IT REAL <i>✦</i> STRATEGY · FILM · AI · DIGITAL <i>✦</i></div></div>
 
   <!-- Manifesto -->
   <section class="section manifesto" id="about" aria-label="О креативном агентстве LOFT в Душанбе">
@@ -3245,6 +3265,6 @@
     ]
   }
   </script>
-  <script src="assets/js/loft-cinema.js?v=orbital-devices-20261022" defer></script>
+  <script src="assets/js/loft-cinema.js" defer></script>
 </body>
 </html>
