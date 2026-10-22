@@ -6,6 +6,7 @@ import '@fontsource/cormorant-garamond/cyrillic-500-italic.css';
 import { initImageMorph } from './image-morph-scene.js';
 import { initAnimationSystem } from './animation-system.js';
 import { initScrollEffects } from './scroll-effects.js';
+import { initCameraShowcase } from './camera-showcase.js';
 
 const story = document.querySelector('.cinema-story');
 const visual = document.querySelector('.cinema-visual');
@@ -19,6 +20,7 @@ const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
 const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
 const animationSystem = initAnimationSystem(motion);
 const scrollEffects = initScrollEffects(motion);
+const cameraShowcase = initCameraShowcase(motion);
 const cleanups = [];
 const images = window.__LOFT_CINEMA_IMAGES__ || ['obsidian', 'aurea', 'alba'].map(name => `/assets/images/cinema/${name}.webp`);
 
@@ -251,6 +253,7 @@ document.querySelectorAll('.portfolio-thumb-wrapper').forEach(card => {
 
 window.addEventListener('pagehide', event => {
   if (event.persisted) return;
+  cameraShowcase.destroy();
   scrollEffects.destroy();
   cleanups.forEach(cleanup => cleanup());
 });

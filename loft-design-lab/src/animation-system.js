@@ -3,8 +3,8 @@ import { animate, hover } from 'motion';
 import Lenis from 'lenis';
 import 'lenis/dist/lenis.css';
 
-// Each library owns a separate layer: GSAP reveals the copy, Motion moves the
-// CTA links and their arrows, and Lenis smooths wheel input without replacing navigation.
+// Each library owns a separate layer: GSAP reveals the copy, Motion gives links
+// and card details a spring response, and Lenis smooths native wheel input.
 export function initAnimationSystem(motionMediaQuery) {
   const reducedMotion = motionMediaQuery || window.matchMedia('(prefers-reduced-motion: reduce)');
   const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
@@ -153,6 +153,42 @@ export function initAnimationSystem(motionMediaQuery) {
     }];
   });
 
+  const cardEffects = [...document.querySelectorAll('.pricing-card, .client-card')].flatMap(card => {
+    const detail = card.querySelector('.pricing-card-price-box, .client-info');
+    if (!detail) return [];
+    const originalTransform = detail.style.getPropertyValue('transform');
+    const originalPriority = detail.style.getPropertyPriority('transform');
+    let control;
+    let hovering = false;
+    const restore = () => {
+      control?.stop();
+      control = undefined;
+      if (originalTransform) detail.style.setProperty('transform', originalTransform, originalPriority);
+      else detail.style.removeProperty('transform');
+    };
+    const update = () => {
+      if (destroyed || reducedMotion.matches || !finePointer.matches || document.hidden || document.body.style.overflow === 'hidden') {
+        restore();
+        return;
+      }
+      if (!hovering && !control) return;
+      control?.stop();
+      control = animate(detail, { y: hovering ? -4 : 0 }, {
+        type: 'spring', stiffness: 220, damping: 24, mass: 0.7,
+      });
+    };
+    const stopHover = hover(card, () => {
+      hovering = true;
+      update();
+      return () => { hovering = false; update(); };
+    });
+    return [{
+      update,
+      syncPointer() { hovering = false; restore(); },
+      destroy() { stopHover(); restore(); },
+    }];
+  });
+
   const tick = seconds => { lenis?.raf(seconds * 1000); };
   function stopTicker() {
     if (!ticking) return;
@@ -165,6 +201,7 @@ export function initAnimationSystem(motionMediaQuery) {
     lenis = undefined;
   }
   function syncTicker() {
+    cardEffects.forEach(effect => effect.update());
     if (!lenis) return;
     if (document.hidden || document.body.style.overflow === 'hidden') {
       stopTicker();
@@ -196,6 +233,7 @@ export function initAnimationSystem(motionMediaQuery) {
       syncTicker();
     }
     arrowEffects.forEach(effect => effect.update());
+    cardEffects.forEach(effect => effect.update());
   }
 
   function scrollTo(top, { immediate = true } = {}) {
@@ -226,7 +264,7 @@ export function initAnimationSystem(motionMediaQuery) {
   };
 
   reducedMotion.addEventListener('change', syncMotion);
-  const syncPointer = () => arrowEffects.forEach(effect => effect.syncPointer());
+  const syncPointer = () => [...arrowEffects, ...cardEffects].forEach(effect => effect.syncPointer());
   finePointer.addEventListener('change', syncPointer);
   const bodyLockObserver = new MutationObserver(syncTicker);
   bodyLockObserver.observe(document.body, { attributes: true, attributeFilter: ['style'] });
@@ -244,6 +282,7 @@ export function initAnimationSystem(motionMediaQuery) {
       clearCopyAnimation();
       destroyLenis();
       arrowEffects.forEach(effect => effect.destroy());
+      cardEffects.forEach(effect => effect.destroy());
       bodyLockObserver.disconnect();
       reducedMotion.removeEventListener('change', syncMotion);
       finePointer.removeEventListener('change', syncPointer);

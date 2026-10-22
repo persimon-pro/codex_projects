@@ -52,6 +52,37 @@ export function initScrollEffects(motionMediaQuery) {
     });
   }
 
+  function revealSequence(container, selector, { distance = 22, stagger = 0.08 } = {}) {
+    const targets = [...container.querySelectorAll(selector)].filter(target => {
+      if (seen.has(target)) return false;
+      if (target.getBoundingClientRect().top <= window.innerHeight * 0.91) {
+        seen.add(target);
+        return false;
+      }
+      return true;
+    });
+    if (!targets.length) return;
+    gsap.fromTo(targets, {
+      autoAlpha: 0,
+      y: distance,
+      clipPath: 'inset(0% -3% 22% -3%)',
+    }, {
+      autoAlpha: 1,
+      y: 0,
+      clipPath: 'inset(-4% -3% -8% -3%)',
+      duration: 1.05,
+      stagger,
+      ease: 'power3.out',
+      clearProps: 'opacity,visibility,transform,clipPath',
+      scrollTrigger: {
+        trigger: container,
+        start: 'top 91%',
+        once: true,
+        onEnter: () => targets.forEach(target => seen.add(target)),
+      },
+    });
+  }
+
   function buildEffects() {
     clearEffects();
     if (destroyed || motion.matches) return;
@@ -59,6 +90,30 @@ export function initScrollEffects(motionMediaQuery) {
     context = gsap.context(() => {
       document.querySelectorAll('.section-title, .manifesto-text, .contact-title').forEach(heading => {
         reveal(heading, 'inset(0% -2% 100% -2%)', 1.15);
+      });
+
+      // Inner elements arrive in a measured cascade while the existing reveal
+      // observer and CSS hover keep ownership of their outer cards.
+      document.querySelectorAll('.discipline').forEach(discipline => {
+        revealSequence(discipline, '.discipline-name, .discipline-desc', { distance: 18, stagger: 0.12 });
+      });
+      document.querySelectorAll('.client-card').forEach(card => {
+        revealSequence(card, '.client-logo-wrapper', { distance: 18 });
+      });
+      document.querySelectorAll('.artists-row').forEach(row => {
+        revealSequence(row, '.artist-photo', { distance: 30, stagger: 0.1 });
+      });
+      document.querySelectorAll('.pattern-svg').forEach(pattern => {
+        gsap.fromTo(pattern, { rotation: -14 }, {
+          rotation: 14,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: pattern.parentElement,
+            start: 'top bottom',
+            end: 'bottom top',
+            scrub: 0.9,
+          },
+        });
       });
 
       document.querySelectorAll('.portfolio-thumb-wrapper').forEach(thumb => {

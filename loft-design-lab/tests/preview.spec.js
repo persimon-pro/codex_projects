@@ -106,6 +106,10 @@ test('portable HTTP preview renders real WebGL, chapters and five inline portrai
   await expect(page.locator('.cinema-stage')).toHaveAttribute('data-current-chapter', '2');
   await expect(page.locator('[data-cinema-copy="2"]')).toBeVisible();
   await expect.poll(async () => Number(await page.locator('.cinema-stage').getAttribute('data-progress'))).toBeCloseTo(1, 2);
+  await page.evaluate(() => document.querySelector('#camera-showcase').scrollIntoView({ block: 'center', behavior: 'instant' }));
+  await expect(page.locator('.camera-showcase-art')).toHaveClass(/is-ready/);
+  await expect(page.locator('.camera-showcase-art canvas')).toBeVisible();
+  await expect(page.locator('.camera-showcase-fallback')).toHaveAttribute('src', /^data:image\/svg\+xml;base64,/);
   expect(externalRequests, 'Portable assets never require an external host').toEqual([]);
   expect(errors, 'The portable document has no runtime, shader or asset errors').toEqual([]);
 });
