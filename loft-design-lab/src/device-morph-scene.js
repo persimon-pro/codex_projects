@@ -133,8 +133,8 @@ const housing = (width, height, radius, depth, bevel, position, rotation = [0, 0
   innerWidth: opening[0], innerHeight: opening[1], innerRadius: opening[2],
 });
 
-/** Camera → microphone → laptop → Instagram. The caller owns the timeline;
- * rendering is entirely on demand, including with reduced motion enabled. */
+/** Camera → microphone → laptop → Instagram. The caller owns the morph
+ * timeline; a quiet orbital rotation runs only while motion is permitted. */
 export function initDeviceMorph(container) {
   if (!container) throw new Error('A device morph container is required.');
   const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -146,6 +146,8 @@ export function initDeviceMorph(container) {
   renderer.toneMappingExposure = 1.03;
   const canvas = renderer.domElement;
   canvas.className = 'loft-device-canvas';
+  canvas.dataset.scene = 'orbital-devices';
+  canvas.dataset.orbits = '2';
   canvas.setAttribute('aria-hidden', 'true');
   canvas.style.cssText = 'display:block;width:100%;height:100%;pointer-events:none;';
 
@@ -162,8 +164,8 @@ export function initDeviceMorph(container) {
   fill.position.set(0, -3, 5);
   scene.add(key, rim, fill);
 
-  const chrome = new THREE.MeshPhysicalMaterial({ color: 0xc8c7c1, metalness: 1, roughness: 0.19, envMapIntensity: 1.18, clearcoat: 0.15, clearcoatRoughness: 0.24 });
-  const satin = new THREE.MeshStandardMaterial({ color: 0xa9aaa6, metalness: 0.94, roughness: 0.29, envMapIntensity: 1.2 });
+  const chrome = new THREE.MeshPhysicalMaterial({ color: 0x626561, metalness: 1, roughness: 0.13, envMapIntensity: 1.35, clearcoat: 0.55, clearcoatRoughness: 0.1 });
+  const satin = new THREE.MeshStandardMaterial({ color: 0x777b76, metalness: 0.96, roughness: 0.24, envMapIntensity: 1.2 });
   const graphite = new THREE.MeshStandardMaterial({ color: 0x181b1c, metalness: 0.62, roughness: 0.31, envMapIntensity: 0.8 });
   const rubber = new THREE.MeshStandardMaterial({ color: 0x101212, metalness: 0.18, roughness: 0.56 });
   const glass = new THREE.MeshPhysicalMaterial({ color: 0x10191c, metalness: 0.65, roughness: 0.14, envMapIntensity: 0.72, clearcoat: 1, clearcoatRoughness: 0.08 });
@@ -175,6 +177,51 @@ export function initDeviceMorph(container) {
   rig.add(sculpture);
   scene.add(rig);
   const geometries = [];
+
+  // Hairline orbits pass both in front of and behind the solid device. Sharing
+  // one line geometry keeps the two rings to two inexpensive draw calls.
+  const orbitPoints = Array.from({ length: 192 }, (_, index) => {
+    const angle = index / 192 * TAU;
+    return v3(Math.cos(angle) * 3.42, Math.sin(angle) * 3.42, 0);
+  });
+  const orbitGeometry = new THREE.BufferGeometry().setFromPoints(orbitPoints);
+  const orbitMaterial = new THREE.LineBasicMaterial({
+    color: 0xc4ac7e, transparent: true, opacity: 0.29, depthWrite: false,
+  });
+  const orbits = [new THREE.Group(), new THREE.Group()];
+  orbits.forEach((orbit, index) => {
+    const line = new THREE.LineLoop(orbitGeometry, orbitMaterial);
+    line.rotation.x = index === 0 ? 1.34 : 1.08;
+    orbit.add(line);
+    rig.add(orbit);
+  });
+  orbits[1].rotation.z = 0.84;
+  geometries.push(orbitGeometry);
+  materials.push(orbitMaterial);
+
+  // Seeded, sparse dust sits behind the orbital rig. No textures or extra
+  // scene/canvas are needed, so static and restored contexts stay consistent.
+  let seed = 7319;
+  const random = () => {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+  const dustPositions = new Float32Array(68 * 3);
+  for (let index = 0; index < dustPositions.length; index += 3) {
+    dustPositions[index] = (random() - 0.5) * 12;
+    dustPositions[index + 1] = (random() - 0.5) * 10;
+    dustPositions[index + 2] = -2 - random() * 3;
+  }
+  const dustGeometry = new THREE.BufferGeometry();
+  dustGeometry.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
+  const dustMaterial = new THREE.PointsMaterial({
+    color: 0xd9d0bc, size: 0.014, transparent: true, opacity: 0.36,
+    depthWrite: false, sizeAttenuation: true,
+  });
+  const dust = new THREE.Points(dustGeometry, dustMaterial);
+  rig.add(dust);
+  geometries.push(dustGeometry);
+  materials.push(dustMaterial);
   const box = new RoundedBoxGeometry(1, 1, 1, 3, 0.15);
   const cylinder = new THREE.CylinderGeometry(1, 1, 1, 64, 1, false);
   const ring = new THREE.TorusGeometry(1, 0.095, 12, 80);
@@ -363,61 +410,72 @@ export function initDeviceMorph(container) {
   let baseY = 0;
   let viewportWidth = 1;
   let viewportHeight = 1;
-  let previousFrameTime = 0;
-  let renderRequestedAt = 0;
-  let lastRenderEnded = 0;
+  let lastPaintTime = 0;
+  let yieldFrames = 0;
+  let ambientTime = 0;
   let slowFrames = 0;
+  const frameInterval = 1000 / 30;
+  const minimumPixelRatio = 0.45;
   const resetRenderBudget = () => {
-    previousFrameTime = 0;
-    lastRenderEnded = 0;
+    lastPaintTime = 0;
+    yieldFrames = 0;
     slowFrames = 0;
   };
   const pointerQuaternion = new THREE.Quaternion();
   const pointerEuler = new THREE.Euler();
+  const ambientQuaternion = new THREE.Quaternion();
+  const ambientEuler = new THREE.Euler();
 
   const canRender = () => !disposed && visible && !document.hidden && !contextLost;
   const render = (now = 0) => {
     frameId = 0;
     if (!canRender()) return;
+    const ambient = !paused && !motionPreference.matches;
+    // A saturated GPU can take longer than the entire frame budget. Reserve a
+    // browser frame for wheel input and layout between those expensive paints.
+    if (ambient && !forceDraw && yieldFrames > 0) {
+      yieldFrames -= 1;
+      frameId = requestAnimationFrame(render);
+      return;
+    }
+    const elapsed = now > 0 && lastPaintTime ? now - lastPaintTime : 0;
+    // Progress, pointer events, and the ambient loop share one RAF. A desktop
+    // scroll stream cannot accidentally turn 30 paints into 60 paints.
+    if (ambient && !forceDraw && elapsed > 0 && elapsed < frameInterval - 0.6) {
+      frameId = requestAnimationFrame(render);
+      return;
+    }
     const value = motionPreference.matches ? Math.round(progress * 3) / 3 : progress;
-    const progressDelta = Math.abs(value - renderedProgress);
-    const hadProgress = renderedProgress >= 0;
     renderedProgress = value;
     const scaled = value * 3;
     const a = Math.min(2, Math.floor(scaled));
     const b = a + 1;
     const t = ease(clamp((scaled - a - 0.16) / 0.68, 0, 1));
-    // a+t is canonical across adjacent pairs: (camera,mic,1) and
-    // (mic,laptop,0) are the exact same physical microphone pose.
+    // Canonical pose caching preserves the shared vertex geometry through
+    // camera/mic/laptop/icon holds even while the whole sculpture rotates.
     const poseValue = a + t;
     const poseChanged = poseValue !== renderedPose;
     const effectivePointerX = motionPreference.matches || paused ? 0 : pointerX;
     const effectivePointerY = motionPreference.matches || paused ? 0 : pointerY;
     const pointerChanged = effectivePointerX !== renderedPointerX || effectivePointerY !== renderedPointerY;
-    if (!forceDraw && !poseChanged && !pointerChanged) {
-      // Timeline progress still advances through a hold, but geometry, matrices,
-      // and the framebuffer remain untouched. Holds are idle budget samples.
+    if (!forceDraw && !poseChanged && !pointerChanged && !ambient) {
       resetRenderBudget();
-      renderRequestedAt = 0;
       return;
     }
-    // Measure an active stream of small progress updates using RAF timestamps.
-    // Static jumps, pointer-only frames, and resumed tabs do not count as slow
-    // animation frames. Long GPU stalls can still trigger the fallback.
-    const activeMotion = now > 0 && !paused && !motionPreference.matches
-      && hadProgress && poseChanged && progressDelta > 0 && progressDelta < 0.18;
-    const elapsed = previousFrameTime ? now - previousFrameTime : 0;
-    const idle = lastRenderEnded ? Math.max(0, renderRequestedAt - lastRenderEnded) : Infinity;
-    if (activeMotion && elapsed > 0 && idle < 1200) {
-      slowFrames = elapsed > 55 ? slowFrames + 1 : 0;
-      if (slowFrames >= 2 && renderer.getPixelRatio() > 0.6) {
-        renderer.setPixelRatio(Math.max(0.6, renderer.getPixelRatio() * 0.7));
+    // Only actual ambient paint intervals count toward adaptive resolution.
+    // Lifecycle resets and explicit paused/reduced-motion redraws do not.
+    if (ambient && elapsed > 0) {
+      slowFrames = elapsed > 62 ? slowFrames + 1 : 0;
+      // Lifecycle events already reset this clock. A long consecutive paint is
+      // GPU pressure, so react immediately before it can stall native scrolling.
+      const stalled = elapsed > 120;
+      if ((stalled || slowFrames >= 2) && renderer.getPixelRatio() > minimumPixelRatio) {
+        renderer.setPixelRatio(Math.max(minimumPixelRatio, renderer.getPixelRatio() * (stalled ? 0.6 : 0.7)));
         renderer.setSize(viewportWidth, viewportHeight, false);
         slowFrames = 0;
       }
+      ambientTime += Math.min(elapsed / 1000, 0.1);
     } else slowFrames = 0;
-    previousFrameTime = activeMotion ? now : 0;
-    renderRequestedAt = 0;
     if (poseChanged) {
       panels.forEach((panel) => panel.update(a, b, t));
       parts.forEach(({ mesh, states, instancePool, instanceIndex }) => {
@@ -436,6 +494,19 @@ export function initDeviceMorph(container) {
     sculpture.position.lerpVectors(from.position, to.position, t);
     sculpture.scale.lerpVectors(from.scale, to.scale, t);
     sculpture.quaternion.slerpQuaternions(from.quaternion, to.quaternion, t);
+    // Slow changes in all three axes keep the chrome highlights travelling
+    // while each device retains a readable face during its transformation.
+    ambientEuler.set(
+      Math.sin(ambientTime * 0.36) * 0.075,
+      Math.sin(ambientTime * 0.24) * 0.46,
+      Math.sin(ambientTime * 0.31) * 0.045,
+    );
+    ambientQuaternion.setFromEuler(ambientEuler);
+    sculpture.quaternion.premultiply(ambientQuaternion);
+    sculpture.position.y += Math.sin(ambientTime * 0.65) * 0.065;
+    orbits[0].rotation.set(0, Math.sin(ambientTime * 0.1) * 0.045, Math.sin(ambientTime * 0.11) * 0.045);
+    orbits[1].rotation.set(Math.sin(ambientTime * 0.09) * 0.06, 0, 0.84 + Math.sin(ambientTime * 0.12) * 0.08);
+    dust.rotation.z = ambientTime * 0.003;
     pointerEuler.set(effectivePointerY * 0.055, effectivePointerX * 0.085, effectivePointerX * -0.012);
     pointerQuaternion.setFromEuler(pointerEuler);
     sculpture.quaternion.premultiply(pointerQuaternion);
@@ -446,18 +517,16 @@ export function initDeviceMorph(container) {
     renderedPointerX = effectivePointerX;
     renderedPointerY = effectivePointerY;
     forceDraw = false;
-    lastRenderEnded = performance.now();
+    lastPaintTime = now || performance.now();
+    if (ambient && elapsed > 62) yieldFrames = 1;
+    if (ambient && canRender()) frameId = requestAnimationFrame(render);
   };
   const requestRender = () => {
-    if (canRender() && !frameId) {
-      renderRequestedAt = performance.now();
-      frameId = requestAnimationFrame(render);
-    }
+    if (canRender() && !frameId) frameId = requestAnimationFrame(render);
   };
   const stopFrame = () => {
     if (frameId) cancelAnimationFrame(frameId);
     frameId = 0;
-    renderRequestedAt = 0;
     resetRenderBudget();
   };
   const resize = () => {
@@ -473,9 +542,9 @@ export function initDeviceMorph(container) {
     renderer.setSize(width, height, false);
     const viewHeight = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.position.z;
     const viewWidth = viewHeight * camera.aspect;
-    // The widest form is the open laptop; the microphone sets the vertical fit.
-    // This uses the actual visual container, with no desktop-specific x offset.
-    baseScale = Math.min(viewWidth / 5.0, viewHeight / 5.15) * (width < 600 ? 0.94 : 1.03);
+    // Fit the whole orbital silhouette, including perspective on the front
+    // halves of both rings. Devices keep their original physical proportions.
+    baseScale = Math.min(viewWidth / 7.6, viewHeight / 6.1) * (width < 600 ? 0.96 : 1.03);
     baseY = viewHeight * 0.012;
     requestRender();
   };
@@ -549,8 +618,9 @@ export function initDeviceMorph(container) {
       paused = next;
       resetRenderBudget();
       if (paused) { pointerX = 0; pointerY = 0; }
-      // There is no ambient animation. Pausing suppresses pointer motion, while
-      // explicit progress/resize updates can still produce a single new frame.
+      // Freeze both orbital and pointer motion. Explicit progress/resize
+      // updates remain available as single redraws while the scene is paused.
+      stopFrame();
       requestRender();
     },
     dispose() {

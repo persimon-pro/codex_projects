@@ -121,7 +121,10 @@ async function artworkPixels(page, path) {
       const sample = document.createElement('canvas');
       sample.width = sample.height = 48;
       const context = sample.getContext('2d');
-      context.drawImage(image, 0, 0, 48, 48);
+      // Sample the central device area so empty space and outer orbits cannot
+      // dilute the difference between the four actual device silhouettes.
+      context.drawImage(image, image.naturalWidth * .17, image.naturalHeight * .17,
+        image.naturalWidth * .66, image.naturalHeight * .66, 0, 0, 48, 48);
       return Array.from(context.getImageData(0, 0, 48, 48).data).filter((_, index) => index % 4 !== 3);
     }, png.toString('base64'));
   } finally {
@@ -201,16 +204,42 @@ test('automatic morphing keeps the document still and keyboard pause freezes ren
   expect(Number(await stage.getAttribute('data-progress')), 'Scrolling retains control after pause is released').toBe(controlledProgress);
 });
 
-test('scrolling within a stationary camera hold avoids redraws and still reaches the next morph', async ({ page }) => {
+test('ambient rotation keeps a held camera moving and respects runtime reduced motion', async ({ page }) => {
   await installDrawCounter(page);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await openHome(page, '/#main-content');
   await expect(page.locator('.cinema-visual')).toHaveClass(/is-ready/);
-  const initialDraws = await countAfterFrames(page);
   await scrollStory(page, .02);
-  expect(await countAfterFrames(page), 'The held camera pose stays on screen without redundant GPU work').toBe(initialDraws);
+  const initialDraws = await countAfterFrames(page);
+  await expect.poll(() => countAfterFrames(page), { message: 'The camera and its orbits keep rendering while the morphology is held' }).toBeGreaterThan(initialDraws);
+  expect(Number(await page.locator('.cinema-stage').getAttribute('data-progress')), 'Ambient rotation does not advance the scroll-controlled morph').toBeCloseTo(.02, 2);
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const stillDraws = await countAfterFrames(page);
+  expect(await countAfterFrames(page), 'Enabling reduced motion stops the ambient renderer').toBe(stillDraws);
+  expect(Number(await page.locator('.cinema-stage').getAttribute('data-progress')), 'Changing motion preferences preserves morphology progress').toBeCloseTo(.02, 2);
+
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const resumedDraws = await countAfterFrames(page);
+  await expect.poll(() => countAfterFrames(page), { message: 'The orbital scene resumes when reduced motion is disabled' }).toBeGreaterThan(resumedDraws);
   await scrollStory(page, .16);
-  expect(await countAfterFrames(page), 'Leaving the hold renders the actual transformation').toBeGreaterThan(initialDraws);
+  expect(await countAfterFrames(page), 'Scrolling still renders the actual transformation').toBeGreaterThan(resumedDraws);
+});
+
+test('ambient rendering stops below the hero and resumes when the scene returns', async ({ page }) => {
+  await installDrawCounter(page);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await openHome(page, '/#main-content');
+  await expect(page.locator('.cinema-visual')).toHaveClass(/is-ready/);
+  await page.evaluate(() => document.querySelector('#work').scrollIntoView({ behavior: 'instant' }));
+  await expect(page.locator('body')).not.toHaveClass(/cinema-hero-active/);
+  const hiddenDraws = await countAfterFrames(page);
+  expect(await countAfterFrames(page), 'An offscreen orbital scene does not keep drawing').toBe(hiddenDraws);
+
+  await scrollStory(page, .02);
+  await expect(page.locator('body')).toHaveClass(/cinema-hero-active/);
+  const returnedDraws = await countAfterFrames(page);
+  await expect.poll(() => countAfterFrames(page), { message: 'The visible orbital scene resumes drawing' }).toBeGreaterThan(returnedDraws);
 });
 
 test('reduced motion stops continuous rendering while native scrolling updates all four still forms', async ({ page }) => {
