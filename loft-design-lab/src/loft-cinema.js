@@ -7,6 +7,7 @@ import { initImageMorph } from './image-morph-scene.js';
 import { initAnimationSystem } from './animation-system.js';
 import { initScrollEffects } from './scroll-effects.js';
 import { initCameraShowcase } from './camera-showcase.js';
+import { initLogoIntro } from './logo-intro.js';
 
 const story = document.querySelector('.cinema-story');
 const visual = document.querySelector('.cinema-visual');
@@ -18,6 +19,7 @@ const pause = document.getElementById('cinemaPause');
 const chapterNumber = document.querySelector('.cinema-current');
 const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
 const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
+const logoIntro = initLogoIntro();
 const animationSystem = initAnimationSystem(motion);
 const scrollEffects = initScrollEffects(motion);
 const cameraShowcase = initCameraShowcase(motion);
@@ -26,6 +28,7 @@ const images = window.__LOFT_CINEMA_IMAGES__ || ['obsidian', 'aurea', 'alba'].ma
 
 if (story && visual && stage && fallback && pause) {
   let renderer;
+  let introActive = true;
   let disposed = false;
   let progress = 0;
   let chapter = -1;
@@ -77,7 +80,9 @@ if (story && visual && stage && fallback && pause) {
       stage.dataset.currentChapter = String(chapter);
       chapters.forEach((button, index) => button.setAttribute('aria-pressed', String(index === chapter)));
       copies.forEach((copy, index) => { copy.hidden = index !== chapter; });
-      animationSystem.animateCopy(copies[chapter]);
+      logoIntro.finished.then(() => {
+        if (!disposed && chapter === next) animationSystem.animateCopy(copies[next]);
+      });
       chapterNumber.textContent = `0${chapter + 1}`;
       fallback.src = images[chapter];
     }
@@ -109,7 +114,7 @@ if (story && visual && stage && fallback && pause) {
     frame = requestAnimationFrame(tick);
   }
   function requestTick() {
-    if (!frame && automatic && visible && !document.hidden && !manuallyPaused && !motion.matches) {
+    if (!frame && !introActive && automatic && visible && !document.hidden && !manuallyPaused && !motion.matches) {
       lastTime = 0;
       frame = requestAnimationFrame(tick);
     }
@@ -173,7 +178,12 @@ if (story && visual && stage && fallback && pause) {
 
   labels();
   applyProgress(automatic ? 0 : scrollProgress());
-  initImageMorph(visual, images).then(controller => {
+  logoIntro.finished.then(() => {
+    introActive = false;
+    if (disposed) return null;
+    return initImageMorph(visual, images);
+  }).then(controller => {
+    if (!controller) return;
     if (disposed) { controller.dispose(); return; }
     renderer = controller;
     renderer.setProgress(progress);
@@ -253,6 +263,7 @@ document.querySelectorAll('.portfolio-thumb-wrapper').forEach(card => {
 
 window.addEventListener('pagehide', event => {
   if (event.persisted) return;
+  logoIntro.destroy();
   cameraShowcase.destroy();
   scrollEffects.destroy();
   cleanups.forEach(cleanup => cleanup());
