@@ -54,13 +54,15 @@ async function installIntroProbe(page) {
         let hash = 0;
         let maximum = 0;
         let lit = 0;
+        let energy = 0;
         for (let index = 0; index < pixels.length; index += 4) {
           const brightness = Math.max(pixels[index], pixels[index + 1], pixels[index + 2]) * pixels[index + 3] / 255;
           maximum = Math.max(maximum, brightness);
+          energy += brightness;
           if (brightness > 20) lit += 1;
           hash = (Math.imul(hash, 31) + Math.round(brightness)) >>> 0;
         }
-        probe.samples.push({ phase: loader.dataset.introPhase, maximum, lit, hash });
+        probe.samples.push({ phase: loader.dataset.introPhase, maximum, lit, hash, energy });
       }
       if (loader?.dataset.introState !== 'done' && performance.now() - started < 10_000) requestAnimationFrame(readFrame);
     }
@@ -77,7 +79,7 @@ async function expectReleasedPage(page) {
   await expect(page.locator('#camera-showcase')).toHaveCount(1);
 }
 
-test('the real logo assembles and dissolves through changing canvas pixels before the preserved homepage appears', async ({ page }) => {
+test('the real logo is drawn in brush strokes and dissolves before the preserved homepage appears', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await installIntroProbe(page);
   const response = await page.goto('/');
@@ -90,13 +92,25 @@ test('the real logo assembles and dissolves through changing canvas pixels befor
   expect(assembled.some(sample => sample.maximum > 100 && sample.lit > 8), 'The assembled brand is visible in the actual canvas').toBe(true);
   for (const phase of ['assembling', 'dissolving']) {
     const visibleFrames = probe.samples.filter(sample => sample.phase === phase && sample.lit > 4);
-    expect(new Set(visibleFrames.map(sample => sample.hash)).size, `${phase} changes the rendered particle positions`).toBeGreaterThan(1);
+    expect(new Set(visibleFrames.map(sample => sample.hash)).size, `${phase} changes the rendered logo`).toBeGreaterThan(1);
   }
+  // Ink builds up as strokes are written, then fades away. Compare windows of
+  // real pixels rather than relying on the timeline's internal progress value.
+  const averageEnergy = samples => samples.reduce((sum, sample) => sum + sample.energy, 0) / samples.length;
+  const heldEnergy = averageEnergy(assembled);
+  const written = probe.samples.filter(sample => sample.phase === 'assembling');
+  const dissolved = probe.samples.filter(sample => sample.phase === 'dissolving');
+  expect(written.length).toBeGreaterThan(3);
+  expect(dissolved.length).toBeGreaterThan(3);
+  const writtenWindow = Math.max(1, Math.floor(written.length / 4));
+  const dissolvedWindow = Math.max(1, Math.floor(dissolved.length / 4));
+  expect(averageEnergy(written.slice(-writtenWindow)) - averageEnergy(written.slice(0, writtenWindow)), 'Visible ink accumulates during the brush drawing').toBeGreaterThan(heldEnergy * .25);
+  expect(averageEnergy(dissolved.slice(-dissolvedWindow)), 'The written logo gently disappears during dissolution').toBeLessThan(averageEnergy(dissolved.slice(0, dissolvedWindow)) * .7);
   await expect(page.locator('button[data-chapter]')).toHaveCount(3);
   expect(await page.locator('.camera-showcase-art canvas').count(), 'The distant camera remains lazy').toBe(0);
 });
 
-test('reduced motion skips particle movement and Escape can immediately dismiss a fresh intro', async ({ page }) => {
+test('reduced motion skips brush drawing and Escape can immediately dismiss a fresh intro', async ({ page }) => {
   await installIntroProbe(page);
   await page.goto('/');
   await expectReleasedPage(page);

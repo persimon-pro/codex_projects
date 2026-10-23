@@ -3,8 +3,94 @@ import { gsap } from 'gsap';
 const clamp = value => Math.max(0, Math.min(1, value));
 const smooth = value => value * value * (3 - 2 * value);
 
-// The particles are sampled from the real, transparent LOFT artwork. The
-// canvas belongs only to this short introduction and never requires WebGL.
+// Curved centre lines follow the handwriting in the original LOFT artwork:
+// L downstroke and sweep, O loop, F stem and bars, then T bar and downstroke.
+// They control a soft ink mask; the actual transparent PNG supplies every edge.
+const brushStrokes = [
+  { width: 7.5, weight: 0.32, curves: [[[35, 7], [31, 15], [26, 26], [11, 40]]] },
+  { width: 7, weight: 0.22, curves: [[[11, 39], [18, 34], [33, 31], [45, 26]]] },
+  { width: 5.8, weight: 0.41, curves: [
+    [[38.5, 16.8], [46, 10.5], [51, 15], [46, 23]],
+    [[46, 23], [42, 29], [32, 33], [33, 25]],
+    [[33, 25], [33, 20], [35, 17], [40, 16]],
+  ] },
+  { width: 6.8, weight: 0.28, curves: [[[56, 8], [53, 17], [47, 28], [44, 39]]] },
+  { width: 6.5, weight: 0.2, curves: [[[52, 15], [58, 12], [65, 10], [72, 8]]] },
+  { width: 5, weight: 0.15, curves: [[[48, 24], [54, 23], [60, 21], [66, 20]]] },
+  { width: 7, weight: 0.23, curves: [[[63, 18], [72, 14], [87, 11], [98, 8]]] },
+  { width: 7, weight: 0.24, curves: [[[75, 15], [73, 22], [69, 30], [67, 35]]] },
+];
+
+function prepareInk(image) {
+  const layer = document.createElement('canvas');
+  layer.width = image.naturalWidth;
+  layer.height = image.naturalHeight;
+  const inkContext = layer.getContext('2d', { willReadFrequently: true });
+  if (!inkContext) return null;
+  inkContext.drawImage(image, 0, 0);
+  const original = inkContext.getImageData(0, 0, layer.width, layer.height);
+  const frame = inkContext.createImageData(layer.width, layer.height);
+  const totalWeight = brushStrokes.reduce((sum, stroke) => sum + stroke.weight, 0);
+  const routes = [];
+  let start = 0;
+  for (const stroke of brushStrokes) {
+    const points = [];
+    for (const curve of stroke.curves) {
+      for (let sample = 0; sample <= 32; sample += 1) {
+        const t = sample / 32;
+        const s = 1 - t;
+        const value = axis => s ** 3 * curve[0][axis] + 3 * s * s * t * curve[1][axis]
+          + 3 * s * t * t * curve[2][axis] + t ** 3 * curve[3][axis];
+        points.push([value(0) / 100 * layer.width, value(1) / 46 * layer.height]);
+      }
+    }
+    let length = 0;
+    const segments = [];
+    for (let index = 1; index < points.length; index += 1) {
+      const [x, y] = points[index - 1];
+      const dx = points[index][0] - x;
+      const dy = points[index][1] - y;
+      const square = dx * dx + dy * dy;
+      if (!square) continue;
+      const size = Math.sqrt(square);
+      segments.push({ x, y, dx, dy, inverse: 1 / square, start: length, length: size });
+      length += size;
+    }
+    routes.push({ segments, length, start, weight: stroke.weight, width: stroke.width });
+    start += stroke.weight;
+  }
+
+  const ink = [];
+  for (let offset = 0; offset < original.data.length; offset += 4) {
+    const alpha = original.data[offset + 3];
+    if (!alpha) continue;
+    const x = (offset / 4) % layer.width + 0.5;
+    const y = Math.floor(offset / 4 / layer.width) + 0.5;
+    let arrival = 0.91;
+    if (x < layer.width * 0.744 || y < layer.height * 0.744) {
+      let best = Infinity;
+      for (const route of routes) {
+        for (const segment of route.segments) {
+          const along = clamp(((x - segment.x) * segment.dx + (y - segment.y) * segment.dy) * segment.inverse);
+          const dx = x - segment.x - segment.dx * along;
+          const dy = y - segment.y - segment.dy * along;
+          const distance = (dx * dx + dy * dy) / (route.width * route.width);
+          if (distance >= best) continue;
+          best = distance;
+          arrival = (route.start + (segment.start + segment.length * along) / route.length * route.weight) / totalWeight * 0.94;
+        }
+      }
+    }
+    frame.data[offset] = original.data[offset];
+    frame.data[offset + 1] = original.data[offset + 1];
+    frame.data[offset + 2] = original.data[offset + 2];
+    ink.push({ offset: offset + 3, alpha, arrival });
+  }
+  if (!ink.length) return null;
+  return { layer, context: inkContext, frame, ink };
+}
+
+// This short, self-contained Canvas 2D introduction never requires WebGL.
 export function initLogoIntro() {
   const loader = document.querySelector('#loader.logo-intro');
   const root = document.documentElement;
@@ -27,14 +113,12 @@ export function initLogoIntro() {
   let stillTimeout = 0;
   let cancelAssetWait;
   let context;
-  let particles = [];
+  let paint;
   let width = 1;
   let height = 1;
   let logoWidth = 1;
   let logoHeight = 1;
-  let particleSize = 1;
-  let sourceInkArea = 1;
-  const state = { gather: 0, dissolve: 0, image: 0 };
+  const state = { write: 0, dissolve: 0 };
 
   const listen = (target, name, callback, options) => {
     target.addEventListener(name, callback, options);
@@ -53,7 +137,7 @@ export function initLogoIntro() {
     cancelAssetWait?.();
     resizeObserver?.disconnect();
     cleanups.splice(0).forEach(cleanup => cleanup());
-    particles = [];
+    if (paint) { paint.layer.width = paint.layer.height = 1; paint = undefined; }
     context?.clearRect(0, 0, width, height);
     phase('complete');
     loader.dataset.introState = 'done';
@@ -75,6 +159,7 @@ export function initLogoIntro() {
   }
 
   loader.dataset.introState = 'playing';
+  loader.dataset.introEffect = 'brush';
   loader.classList.add('is-playing');
   loader.setAttribute('data-intro-active', '');
   // A broken asset, interrupted timeline, or backgrounded tab cannot leave a
@@ -130,37 +215,21 @@ export function initLogoIntro() {
   }
 
   function draw() {
-    if (complete || !context) return;
+    if (complete || !context || !paint) return;
     context.clearRect(0, 0, width, height);
-    const particleOpacity = 1 - state.image;
-    for (const warm of [false, true]) {
-      context.fillStyle = warm ? '#c9b58d' : '#eeeae1';
-      for (const particle of particles) {
-        if (particle.warm !== warm) continue;
-        const gathered = smooth(clamp((state.gather - particle.delay * 0.17) / 0.83));
-        const dissolved = smooth(clamp((state.dissolve - particle.delay * 0.16) / 0.84));
-        const targetX = width / 2 + particle.u * logoWidth;
-        const targetY = height / 2 + particle.v * logoHeight;
-        const curl = Math.sin((1 - gathered) * Math.PI);
-        const x = targetX + particle.startX * width * (1 - gathered)
-          + Math.sin(particle.angle + gathered * 2.8) * curl * logoWidth * 0.12
-          + particle.driftX * width * dissolved;
-        const y = targetY + particle.startY * height * (1 - gathered)
-          + Math.cos(particle.angle + gathered * 2.2) * curl * logoWidth * 0.07
-          + particle.driftY * height * dissolved;
-        const alpha = particle.alpha * (0.22 + gathered * 0.78)
-          * Math.pow(1 - dissolved, 1.35) * particleOpacity;
-        if (alpha < 0.006) continue;
-        context.globalAlpha = alpha;
-        const size = particleSize * particle.size * (1 - dissolved * 0.42);
-        context.fillRect(x - size / 2, y - size / 2, size, size * particle.aspect);
-      }
+    // Every original ink pixel has an arrival time along a curved brush stroke.
+    // A feathered front paints continuously, including the dry-brush texture;
+    // nothing flies in and no final image swap changes the silhouette.
+    for (const pixel of paint.ink) {
+      const reveal = smooth(clamp((state.write - pixel.arrival) / 0.06));
+      paint.frame.data[pixel.offset] = Math.round(pixel.alpha * reveal);
     }
-    if (state.image > 0) {
-      context.globalAlpha = state.image;
-      context.drawImage(image, (width - logoWidth) / 2, (height - logoHeight) / 2, logoWidth, logoHeight);
-    }
-    context.globalAlpha = 1;
+    paint.context.putImageData(paint.frame, 0, 0);
+    context.save();
+    context.globalAlpha = Math.pow(1 - state.dissolve, 1.35);
+    context.filter = state.dissolve ? `blur(${(state.dissolve * 7).toFixed(2)}px)` : 'none';
+    context.drawImage(paint.layer, (width - logoWidth) / 2, (height - logoHeight) / 2, logoWidth, logoHeight);
+    context.restore();
   }
 
   function resize() {
@@ -174,7 +243,6 @@ export function initLogoIntro() {
     const rect = image.getBoundingClientRect();
     logoWidth = rect.width || Math.min(430, Math.max(180, width * 0.34));
     logoHeight = logoWidth * image.naturalHeight / image.naturalWidth;
-    particleSize = Math.max(0.9, Math.sqrt(sourceInkArea / particles.length) * logoWidth / image.naturalWidth);
     draw();
   }
 
@@ -185,44 +253,8 @@ export function initLogoIntro() {
     try {
       context = canvas.getContext('2d', { alpha: true });
       if (!context) { fallback(); return; }
-      const sampling = document.createElement('canvas');
-      sampling.width = image.naturalWidth;
-      sampling.height = image.naturalHeight;
-      const sampleContext = sampling.getContext('2d', { willReadFrequently: true });
-      if (!sampleContext) { fallback(); return; }
-      sampleContext.drawImage(image, 0, 0);
-      const pixels = sampleContext.getImageData(0, 0, sampling.width, sampling.height).data;
-      const candidates = [];
-      for (let y = 0; y < sampling.height; y += 2) {
-        for (let x = 0; x < sampling.width; x += 2) {
-          const alpha = pixels[(y * sampling.width + x) * 4 + 3] / 255;
-          if (alpha < 0.3) continue;
-          candidates.push({ u: (x + 0.5) / sampling.width - 0.5, v: (y + 0.5) / sampling.height - 0.5, alpha });
-        }
-      }
-      if (!candidates.length) { fallback(); return; }
-      sourceInkArea = candidates.length * 4;
-      let seed = 19457;
-      const random = () => {
-        seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-        return seed / 4294967296;
-      };
-      for (let index = candidates.length - 1; index > 0; index -= 1) {
-        const swap = Math.floor(random() * (index + 1));
-        [candidates[index], candidates[swap]] = [candidates[swap], candidates[index]];
-      }
-      particles = candidates.slice(0, window.innerWidth <= 600 ? 950 : 2100).map(target => ({
-        ...target,
-        startX: (random() - 0.5) * 1.25,
-        startY: (random() - 0.5) * 0.95,
-        driftX: (random() - 0.5) * 0.62,
-        driftY: -(0.12 + random() * 0.45),
-        angle: random() * Math.PI * 2,
-        delay: random(),
-        size: 0.75 + random() * 0.5,
-        aspect: 0.65 + random() * 0.5,
-        warm: random() < 0.07,
-      }));
+      paint = prepareInk(image);
+      if (!paint) { fallback(); return; }
       resize();
       loader.classList.add('is-canvas-ready');
       phase('assembling');
@@ -231,13 +263,11 @@ export function initLogoIntro() {
         resizeObserver.observe(loader);
       } else listen(window, 'resize', resize, { passive: true });
       timeline = gsap.timeline({ onUpdate: draw, onComplete: finish });
-      timeline.to(state, { gather: 1, duration: 1.3, ease: 'power3.out' }, 0)
-        .to(state, { image: 1, duration: 0.18, ease: 'none' }, 1.12)
-        .call(() => phase('assembled'), [], 1.3)
-        .call(() => phase('dissolving'), [], 1.85)
-        .to(state, { image: 0, duration: 0.24, ease: 'none' }, 1.85)
-        .to(state, { dissolve: 1, duration: 1, ease: 'power2.in' }, 1.85)
-        .to(loader, { autoAlpha: 0, duration: 0.45, ease: 'power2.inOut' }, 2.65);
+      timeline.to(state, { write: 1, duration: 2.1, ease: 'sine.inOut' }, 0)
+        .call(() => phase('assembled'), [], 2.1)
+        .call(() => phase('dissolving'), [], 2.55)
+        .to(state, { dissolve: 1, duration: 0.95, ease: 'sine.inOut' }, 2.55)
+        .to(loader, { autoAlpha: 0, duration: 0.5, ease: 'sine.inOut' }, 3.05);
     } catch {
       fallback();
     }
