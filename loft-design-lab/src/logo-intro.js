@@ -102,10 +102,15 @@ export function initLogoIntro() {
   const canvas = loader.querySelector('.logo-intro-canvas');
   const image = loader.querySelector('.logo-intro-image');
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const options = new URLSearchParams(window.location.search);
+  const replay = options.get('intro') === 'brush';
+  const fullMotion = replay && options.get('motion') === 'full';
   const cleanups = [];
   let resolveFinished;
   const finished = new Promise(resolve => { resolveFinished = resolve; });
   let complete = false;
+  let started = false;
+  let waitedForVisibility = false;
   let timeline;
   let resizeObserver;
   let watchdog = 0;
@@ -151,30 +156,9 @@ export function initLogoIntro() {
   }
 
   const navigation = performance.getEntriesByType?.('navigation')[0];
-  if (document.hidden || window.location.hash || window.scrollY > 10
-    || navigation?.type === 'back_forward' || loader.classList.contains('hidden')
-    || getComputedStyle(loader).visibility === 'hidden') {
+  if (!replay && (window.location.hash || window.scrollY > 10
+    || navigation?.type === 'back_forward')) {
     finish();
-    return { finished, destroy: finish };
-  }
-
-  loader.dataset.introState = 'playing';
-  loader.dataset.introEffect = 'brush';
-  loader.classList.add('is-playing');
-  loader.setAttribute('data-intro-active', '');
-  // A broken asset, interrupted timeline, or backgrounded tab cannot leave a
-  // full-screen overlay over the page. CSS provides a separate bootstrap guard.
-  watchdog = window.setTimeout(finish, 5000);
-  root.setAttribute('data-loft-intro-active', '');
-  ['pointerdown', 'wheel', 'touchstart', 'keydown'].forEach(name => {
-    listen(window, name, finish, { capture: true, passive: true });
-  });
-  listen(document, 'visibilitychange', () => { if (document.hidden) finish(); });
-  listen(motion, 'change', finish);
-
-  if (motion.matches) {
-    phase('assembled');
-    stillTimeout = window.setTimeout(finish, 160);
     return { finished, destroy: finish };
   }
 
@@ -273,6 +257,69 @@ export function initLogoIntro() {
     }
   }
 
-  prepare().catch(fallback);
+  function start() {
+    if (complete || started || document.hidden) return;
+    if (!replay && (window.location.hash || window.scrollY > 10)) {
+      finish();
+      return;
+    }
+    const revive = replay || waitedForVisibility;
+    // Keep the bootstrap fail-open behavior for a slow foreground load. Only
+    // a requested replay or a background tab becoming visible may revive it.
+    if (!revive && (loader.hidden || loader.classList.contains('hidden')
+      || getComputedStyle(loader).visibility === 'hidden')) {
+      finish();
+      return;
+    }
+    started = true;
+    if (replay) {
+      if (window.location.hash) {
+        const replayUrl = new URL(window.location.href);
+        replayUrl.hash = '';
+        try {
+          window.history.replaceState(window.history.state, '', replayUrl);
+        } catch {
+          // A browser history restriction must not prevent the intro guard.
+        }
+      }
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }
+    if (revive) {
+      loader.hidden = false;
+      loader.classList.remove('hidden');
+      loader.style.removeProperty('opacity');
+      loader.style.removeProperty('visibility');
+    }
+    root.setAttribute('data-loft-loading', '');
+    loader.dataset.introState = 'playing';
+    loader.dataset.introEffect = 'brush';
+    loader.classList.add('is-playing');
+    loader.setAttribute('data-intro-active', '');
+    // The runtime guard starts only when the page can actually show the intro.
+    // CSS provides a separate bootstrap guard while the application loads.
+    watchdog = window.setTimeout(finish, 5000);
+    root.setAttribute('data-loft-intro-active', '');
+    ['pointerdown', 'wheel', 'touchstart', 'keydown'].forEach(name => {
+      listen(window, name, finish, { capture: true, passive: true });
+    });
+    listen(motion, 'change', finish);
+    if (motion.matches && !fullMotion) {
+      phase('assembled');
+      stillTimeout = window.setTimeout(finish, 160);
+      return;
+    }
+    prepare().catch(fallback);
+  }
+
+  listen(document, 'visibilitychange', () => {
+    if (complete) return;
+    if (!started && !document.hidden) start();
+    else if (started && document.hidden) finish();
+  });
+  if (document.hidden) {
+    waitedForVisibility = true;
+    loader.dataset.introState = 'waiting';
+    root.removeAttribute('data-loft-intro-active');
+  } else start();
   return { finished, destroy: finish };
 }

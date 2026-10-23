@@ -23,8 +23,8 @@ test.afterEach(async ({ page }) => {
   expect(runtimeErrors.get(page), 'The intro has no uncaught errors or submitted leads').toEqual([]);
 });
 
-async function installIntroProbe(page) {
-  await page.addInitScript(() => {
+async function installIntroProbe(page, maxDuration = 10_000) {
+  await page.addInitScript(maxDuration => {
     const probe = window.__logoIntroProbe = { phases: [], samples: [] };
     const sample = document.createElement('canvas');
     sample.width = 48;
@@ -64,10 +64,17 @@ async function installIntroProbe(page) {
         }
         probe.samples.push({ phase: loader.dataset.introPhase, maximum, lit, hash, energy });
       }
-      if (loader?.dataset.introState !== 'done' && performance.now() - started < 10_000) requestAnimationFrame(readFrame);
+      if (loader?.dataset.introState !== 'done' && performance.now() - started < maxDuration) requestAnimationFrame(readFrame);
     }
     requestAnimationFrame(readFrame);
-  });
+  }, maxDuration);
+}
+
+function expectVisibleBrushReplay(probe) {
+  expect(probe.phases).toEqual(['assembling', 'assembled', 'dissolving', 'complete']);
+  const drawing = probe.samples.filter(sample => sample.phase === 'assembling' && sample.lit > 4);
+  expect(new Set(drawing.map(sample => sample.hash)).size, 'The replay draws changing ink in the actual canvas').toBeGreaterThan(1);
+  expect(probe.samples.some(sample => sample.phase === 'assembled' && sample.maximum > 100 && sample.lit > 8), 'The replay reaches a visibly rendered LOFT logo').toBe(true);
 }
 
 async function expectReleasedPage(page) {
@@ -125,6 +132,45 @@ test('reduced motion skips brush drawing and Escape can immediately dismiss a fr
   await expectReleasedPage(page);
   await page.evaluate(() => scrollTo({ top: 320, behavior: 'instant' }));
   await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(250);
+});
+
+test('an explicit full-motion replay draws the logo despite reduced motion and a section hash', async ({ page }) => {
+  await installIntroProbe(page);
+  await page.goto('/?intro=brush&motion=full#work');
+  await expectReleasedPage(page);
+  expectVisibleBrushReplay(await page.evaluate(() => window.__logoIntroProbe));
+  expect(new URL(page.url()).hash, 'Only an explicit replay clears the previous section target').toBe('');
+  expect(await page.evaluate(() => scrollY), 'The replay returns to the beginning of the homepage').toBeLessThanOrEqual(10);
+});
+
+test('an initially hidden page plays its intro after activation even when the bootstrap guard has expired', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await installIntroProbe(page, 20_000);
+  await page.addInitScript(() => {
+    window.__introTestHidden = true;
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      get: () => window.__introTestHidden,
+    });
+  });
+  await page.goto('/');
+  const loader = page.locator('#loader');
+  await expect(loader).toHaveAttribute('data-intro-state', 'waiting');
+  await expect(page.locator('html')).not.toHaveAttribute('data-loft-intro-active');
+  expect(await page.evaluate(() => document.body.style.overflow)).not.toBe('hidden');
+  // The existing CSS guard expires while the tab is still in the background.
+  await expect(loader).toHaveCSS('visibility', 'hidden', { timeout: 6500 });
+  await expect(loader).toHaveAttribute('data-intro-state', 'waiting');
+  expect(await page.evaluate(() => window.__logoIntroProbe.phases)).toEqual([]);
+
+  await page.evaluate(() => {
+    window.__introTestHidden = false;
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await expect(loader).toHaveAttribute('data-intro-state', 'playing');
+  await expect(loader).toBeVisible();
+  await expectReleasedPage(page);
+  expectVisibleBrushReplay(await page.evaluate(() => window.__logoIntroProbe));
 });
 
 test('an unavailable logo cannot leave an overlay blocking the site', async ({ page }) => {

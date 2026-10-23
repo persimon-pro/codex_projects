@@ -1,5 +1,6 @@
 {
   "cleanUrls": true,
+  "buildCommand": "npm run build",
   "functions": {
     "server.js": {
       "includeFiles": "{assets/**,fonts/**,logo/**,*.css,favicon.ico,favicon.png,apple-touch-icon.png,robots.txt,sitemap.xml,*.html}"
