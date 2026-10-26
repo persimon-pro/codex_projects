@@ -5,7 +5,8 @@ import { initDeviceMorph } from './device-morph-scene.js';
 gsap.registerPlugin(ScrollTrigger);
 
 // A second, self-contained artwork: the existing three-image film keeps its
-// original timeline, markup and renderer. Only the saved camera pose is used.
+// original timeline, markup and renderer. The saved four-device sequence runs
+// independently while this interlude is visible.
 export function initCameraShowcase(motionMediaQuery) {
   const section = document.querySelector('.camera-showcase');
   const art = section?.querySelector('.camera-showcase-art');
@@ -15,7 +16,10 @@ export function initCameraShowcase(motionMediaQuery) {
   const motion = motionMediaQuery || window.matchMedia('(prefers-reduced-motion: reduce)');
   const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
   const cleanups = [];
+  const forms = ['camera', 'microphone', 'laptop', 'instagram'];
+  const morphState = { progress: 0 };
   let controller;
+  let morph;
   let destroyed = false;
   let attempted = false;
   let contextLost = false;
@@ -40,14 +44,22 @@ export function initCameraShowcase(motionMediaQuery) {
   };
   const syncPause = () => {
     if (destroyed) return;
-    controller?.setPaused(manuallyPaused || blocked() || !visible || document.hidden || contextLost);
+    const suspended = manuallyPaused || blocked() || !visible || document.hidden || contextLost;
+    controller?.setPaused(suspended);
+    morph?.paused(suspended || motion.matches);
     section.dataset.paused = String(manuallyPaused);
-    if (manuallyPaused || blocked() || !visible || document.hidden || contextLost) resetPointer();
+    if (suspended) resetPointer();
   };
   const setLabels = () => {
     section.setAttribute('aria-label', document.documentElement.lang === 'ru'
-      ? 'Объёмный фотоаппарат LOFT. Пробел — приостановить или продолжить вращение.'
-      : 'LOFT three-dimensional camera. Space pauses or resumes rotation.');
+      ? 'LOFT: фотоаппарат, микрофон, ноутбук и значок Instagram. Пробел — приостановить или продолжить движение.'
+      : 'LOFT: camera, microphone, laptop and Instagram icon. Space pauses or resumes motion.');
+  };
+  const applyMorph = () => {
+    const progress = morphState.progress;
+    controller?.setProgress(progress);
+    section.dataset.progress = progress.toFixed(4);
+    section.dataset.currentForm = forms[Math.min(forms.length - 1, Math.round(progress * (forms.length - 1)))];
   };
 
   function createScene() {
@@ -55,8 +67,19 @@ export function initCameraShowcase(motionMediaQuery) {
     attempted = true;
     try {
       controller = initDeviceMorph(art);
-      controller.setProgress(0);
-      section.dataset.currentForm = 'camera';
+      applyMorph();
+      // Keep the original 27-second passage through all four saved forms.
+      // The renderer supplies eased transitions and readable holds; reversing
+      // the same path avoids a jump from the Instagram icon back to the camera.
+      morph = gsap.to(morphState, {
+        progress: 1,
+        duration: 27,
+        ease: 'none',
+        repeat: -1,
+        yoyo: true,
+        paused: true,
+        onUpdate: applyMorph,
+      });
       syncPause();
       art.classList.add('is-ready');
     } catch (error) {
@@ -170,6 +193,7 @@ export function initCameraShowcase(motionMediaQuery) {
       lockObserver.disconnect();
       languageObserver.disconnect();
       effects?.revert();
+      morph?.kill();
       cleanups.forEach(cleanup => cleanup());
       controller?.dispose();
       art.classList.remove('is-ready', 'is-static');

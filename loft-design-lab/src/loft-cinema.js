@@ -8,6 +8,7 @@ import { initAnimationSystem } from './animation-system.js';
 import { initScrollEffects } from './scroll-effects.js';
 import { initCameraShowcase } from './camera-showcase.js';
 import { initLogoIntro } from './logo-intro.js';
+import { initMarquee } from './marquee.js';
 
 const story = document.querySelector('.cinema-story');
 const visual = document.querySelector('.cinema-visual');
@@ -23,6 +24,7 @@ const logoIntro = initLogoIntro();
 const animationSystem = initAnimationSystem(motion);
 const scrollEffects = initScrollEffects(motion);
 const cameraShowcase = initCameraShowcase(motion);
+const marquee = initMarquee();
 const cleanups = [];
 const images = window.__LOFT_CINEMA_IMAGES__ || ['obsidian', 'aurea', 'alba'].map(name => `/assets/images/cinema/${name}.webp`);
 
@@ -266,5 +268,6 @@ window.addEventListener('pagehide', event => {
   logoIntro.destroy();
   cameraShowcase.destroy();
   scrollEffects.destroy();
+  marquee.destroy();
   cleanups.forEach(cleanup => cleanup());
 });

@@ -9,6 +9,7 @@ export function initScrollEffects(motionMediaQuery) {
   const motion = motionMediaQuery || window.matchMedia('(prefers-reduced-motion: reduce)');
   const seen = new WeakSet();
   const layers = [];
+  const manifestoNodes = [];
   let context;
   let refreshFrame = 0;
   let rebuildFrame = 0;
@@ -19,6 +20,12 @@ export function initScrollEffects(motionMediaQuery) {
     context = undefined;
     layers.splice(0).forEach(layer => {
       if (layer.parentNode) layer.replaceWith(...layer.childNodes);
+    });
+    manifestoNodes.splice(0).forEach(({ original, replacements }) => {
+      const first = replacements[0];
+      if (!first?.parentNode) return;
+      first.before(original);
+      replacements.forEach(node => node.remove());
     });
   }
 
@@ -83,14 +90,53 @@ export function initScrollEffects(motionMediaQuery) {
     });
   }
 
+  function revealManifesto(paragraph) {
+    // Keep each language's reading order and the original italic emphasis.
+    // Whitespace remains as text nodes so the existing line wrapping is intact.
+    paragraph.querySelectorAll(':scope > .lang').forEach(language => {
+      const walker = document.createTreeWalker(language, NodeFilter.SHOW_TEXT);
+      const textNodes = [];
+      while (walker.nextNode()) textNodes.push(walker.currentNode);
+      const words = [];
+      textNodes.forEach(original => {
+        if (!original.textContent.trim()) return;
+        const replacements = original.textContent.split(/(\s+)/).filter(Boolean).map(token => {
+          if (/^\s+$/.test(token)) return document.createTextNode(token);
+          const word = document.createElement('span');
+          word.className = 'manifesto-word';
+          word.textContent = token;
+          words.push(word);
+          return word;
+        });
+        original.replaceWith(...replacements);
+        manifestoNodes.push({ original, replacements });
+      });
+      if (!words.length) return;
+      gsap.fromTo(words, { opacity: 0.22 }, {
+        opacity: 1,
+        duration: 0.16,
+        stagger: { amount: 1 },
+        ease: 'none',
+        scrollTrigger: {
+          trigger: paragraph,
+          start: 'top 83%',
+          end: 'bottom 48%',
+          scrub: 0.45,
+          invalidateOnRefresh: true,
+        },
+      });
+    });
+  }
+
   function buildEffects() {
     clearEffects();
     if (destroyed || motion.matches) return;
 
     context = gsap.context(() => {
-      document.querySelectorAll('.section-title, .manifesto-text, .contact-title').forEach(heading => {
+      document.querySelectorAll('.section-title, .contact-title').forEach(heading => {
         reveal(heading, 'inset(0% -2% 100% -2%)', 1.15);
       });
+      document.querySelectorAll('.manifesto-text').forEach(revealManifesto);
 
       // Inner elements arrive in a measured cascade while the existing reveal
       // observer and CSS hover keep ownership of their outer cards.
