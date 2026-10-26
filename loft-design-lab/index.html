@@ -135,6 +135,23 @@
   <link rel="stylesheet" href="loft-cinema.css">
   <link rel="stylesheet" href="assets/js/loft-cinema.css">
   <script>document.documentElement.setAttribute('data-loft-loading', '');</script>
+  <script>
+    (() => {
+      const events = ['pointerdown', 'keydown', 'wheel', 'touchstart'];
+      const state = window.__LOFT_INTRO_BOOTSTRAP__ = {
+        interacted: false,
+        dispose() {
+          events.forEach(name => window.removeEventListener(name, remember, true));
+        }
+      };
+      function remember() {
+        state.interacted = true;
+        state.dispose();
+        document.documentElement.removeAttribute('data-loft-loading');
+      }
+      events.forEach(name => window.addEventListener(name, remember, { capture: true, passive: true }));
+    })();
+  </script>
   <style>
     html[lang="en"] .lang-ru { display: none !important; }
     html[lang="ru"] .lang-en { display: none !important; }
@@ -3269,6 +3286,6 @@
     ]
   }
   </script>
-  <script src="assets/js/loft-cinema.js?v=three-restorations-20261026" defer></script>
+  <script src="assets/js/loft-cinema.js?v=intro-load-20261026" defer></script>
 </body>
 </html>

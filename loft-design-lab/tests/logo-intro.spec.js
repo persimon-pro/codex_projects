@@ -173,6 +173,70 @@ test('an initially hidden page plays its intro after activation even when the bo
   expectVisibleBrushReplay(await page.evaluate(() => window.__logoIntroProbe));
 });
 
+async function holdCinemaBundle(page) {
+  let release;
+  let markRequested;
+  const released = new Promise(resolve => { release = resolve; });
+  const requested = new Promise(resolve => { markRequested = resolve; });
+  await page.route('**/assets/js/loft-cinema.js*', async route => {
+    markRequested();
+    await released;
+    await route.continue();
+  });
+  return { requested, release };
+}
+
+test('a late foreground bundle revives the expired bootstrap guard and visibly draws the brush logo', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await installIntroProbe(page, 20_000);
+  const bundle = await holdCinemaBundle(page);
+  try {
+    const response = await page.goto('/', { waitUntil: 'commit' });
+    expect(response.status()).toBe(200);
+    await bundle.requested;
+    const loader = page.locator('#loader');
+    await expect(loader).toBeVisible();
+    await expect(loader).not.toHaveAttribute('data-intro-state');
+    // The page and CSS are real; only the deferred application bundle is held.
+    // Let its existing 4.2-second CSS guard actually expire before releasing it.
+    await expect(loader).toHaveCSS('visibility', 'hidden', { timeout: 6500 });
+    expect(await page.evaluate(() => window.__logoIntroProbe.phases)).toEqual([]);
+    bundle.release();
+    await expect(loader).toHaveAttribute('data-intro-state', 'playing');
+    await expect(loader).toBeVisible();
+    await expectReleasedPage(page);
+    expectVisibleBrushReplay(await page.evaluate(() => window.__logoIntroProbe));
+  } finally {
+    bundle.release();
+  }
+});
+
+test('interaction before a late bundle loads prevents the intro from covering the page again', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await installIntroProbe(page, 20_000);
+  const bundle = await holdCinemaBundle(page);
+  try {
+    const response = await page.goto('/', { waitUntil: 'commit' });
+    expect(response.status()).toBe(200);
+    await bundle.requested;
+    const loader = page.locator('#loader');
+    await expect(loader).toBeVisible();
+    await expect(loader).toHaveCSS('visibility', 'hidden', { timeout: 6500 });
+    await page.keyboard.press('Escape');
+    expect(await page.evaluate(() => window.__LOFT_INTRO_BOOTSTRAP__?.interacted)).toBe(true);
+    bundle.release();
+    await expectReleasedPage(page);
+    const phases = await page.evaluate(() => window.__logoIntroProbe.phases);
+    expect(phases).not.toContain('assembling');
+    expect(phases).not.toContain('dissolving');
+    expect(await page.evaluate(() => '__LOFT_INTRO_BOOTSTRAP__' in window), 'The early interaction observer is removed after the runtime takes over').toBe(false);
+    await page.locator('button[data-chapter="1"]').click();
+    await expect(page.locator('.cinema-stage')).toHaveAttribute('data-current-chapter', '1');
+  } finally {
+    bundle.release();
+  }
+});
+
 test('an unavailable logo cannot leave an overlay blocking the site', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.route('**/assets/images/logo_rect_white.png*', route => route.fulfill({ status: 404, body: '' }));

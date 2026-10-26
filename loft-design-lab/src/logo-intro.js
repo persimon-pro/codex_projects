@@ -92,6 +92,10 @@ function prepareInk(image) {
 
 // This short, self-contained Canvas 2D introduction never requires WebGL.
 export function initLogoIntro() {
+  const bootstrap = window.__LOFT_INTRO_BOOTSTRAP__;
+  const interactedBeforeLoad = Boolean(bootstrap?.interacted);
+  bootstrap?.dispose?.();
+  delete window.__LOFT_INTRO_BOOTSTRAP__;
   const loader = document.querySelector('#loader.logo-intro');
   const root = document.documentElement;
   if (!loader) {
@@ -110,7 +114,6 @@ export function initLogoIntro() {
   const finished = new Promise(resolve => { resolveFinished = resolve; });
   let complete = false;
   let started = false;
-  let waitedForVisibility = false;
   let timeline;
   let resizeObserver;
   let watchdog = 0;
@@ -156,8 +159,8 @@ export function initLogoIntro() {
   }
 
   const navigation = performance.getEntriesByType?.('navigation')[0];
-  if (!replay && (window.location.hash || window.scrollY > 10
-    || navigation?.type === 'back_forward')) {
+  if (interactedBeforeLoad || (!replay && (window.location.hash || window.scrollY > 10
+    || navigation?.type === 'back_forward'))) {
     finish();
     return { finished, destroy: finish };
   }
@@ -263,14 +266,6 @@ export function initLogoIntro() {
       finish();
       return;
     }
-    const revive = replay || waitedForVisibility;
-    // Keep the bootstrap fail-open behavior for a slow foreground load. Only
-    // a requested replay or a background tab becoming visible may revive it.
-    if (!revive && (loader.hidden || loader.classList.contains('hidden')
-      || getComputedStyle(loader).visibility === 'hidden')) {
-      finish();
-      return;
-    }
     started = true;
     if (replay) {
       if (window.location.hash) {
@@ -284,12 +279,12 @@ export function initLogoIntro() {
       }
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     }
-    if (revive) {
-      loader.hidden = false;
-      loader.classList.remove('hidden');
-      loader.style.removeProperty('opacity');
-      loader.style.removeProperty('visibility');
-    }
+    // The CSS guard may already have released a slow-loading page. Eligible
+    // visits still play; the separate runtime animation restarts its guard.
+    loader.hidden = false;
+    loader.classList.remove('hidden');
+    loader.style.removeProperty('opacity');
+    loader.style.removeProperty('visibility');
     root.setAttribute('data-loft-loading', '');
     loader.dataset.introState = 'playing';
     loader.dataset.introEffect = 'brush';
@@ -317,7 +312,6 @@ export function initLogoIntro() {
     else if (started && document.hidden) finish();
   });
   if (document.hidden) {
-    waitedForVisibility = true;
     loader.dataset.introState = 'waiting';
     root.removeAttribute('data-loft-intro-active');
   } else start();
