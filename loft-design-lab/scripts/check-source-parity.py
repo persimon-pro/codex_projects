@@ -2,6 +2,7 @@
 """Compare the redesigned local project with its recorded original-site baseline."""
 import argparse
 from collections import Counter
+from copy import deepcopy
 import hashlib
 from html.parser import HTMLParser
 import json
@@ -11,6 +12,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / 'migration' / 'source-manifest.json'
+CONTENT_OVERRIDES = ROOT / 'migration' / 'content-overrides.json'
 VOID = {'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'}
 PAGES = ['index.html', 'production.html', 'smm.html', 'branding.html', 'web.html', 'booking-stars.html', 'order.html']
 
@@ -165,9 +167,42 @@ def record_source(source):
     print(f'Recorded {len(manifest["files"])} source files and {len(manifest["pages"])} pages at {commit}.')
 
 
+def approved_headline(filename, expected, override):
+    if not override:
+        return expected, 0
+    replacements = override.get('replacements', [])
+    if (filename != 'index.html' or len(replacements) != 4
+            or not override.get('reason') or not override.get('approvedOn')):
+        raise ValueError('Only the documented four-fragment homepage headline change is allowed')
+    old_fragments = [replacement['from'] for replacement in replacements]
+    if len(set(old_fragments)) != 4:
+        raise ValueError('Headline source fragments must be distinct')
+    for replacement in replacements:
+        old, new = replacement['from'], replacement['to']
+        if not old or not new or old == new:
+            raise ValueError('Headline replacements require distinct nonempty source and target text')
+        if (expected['bodyTextNodes'].get(old) != 1
+                or sum(text.count(old) for text in expected['h1']) != 1
+                or sum(block['text'].count(old) for block in expected['languageBlocks']) != 1):
+            raise ValueError(f'Approved headline fragment must occur exactly once in the original H1, language blocks and body: {old}')
+    adjusted = deepcopy(expected)
+    for replacement in replacements:
+        old, new = replacement['from'], replacement['to']
+        adjusted['h1'] = [text.replace(old, new) for text in adjusted['h1']]
+        for block in adjusted['languageBlocks']:
+            block['text'] = block['text'].replace(old, new)
+        adjusted['bodyTextNodes'].pop(old)
+        adjusted['bodyTextNodes'][new] = adjusted['bodyTextNodes'].get(new, 0) + 1
+    return adjusted, len(replacements)
+
+
 def check():
     manifest = json.loads(MANIFEST.read_text())
+    overrides = json.loads(CONTENT_OVERRIDES.read_text())
     failures = []
+    if overrides.get('schemaVersion') != 1 or set(overrides.get('pages', {})) - {'index.html'}:
+        failures.append('Content overrides must use schema version 1 and only the homepage')
+    approved_pages = approved_fragments = 0
     exact = 0
     for entry in manifest['files']:
         path = ROOT / entry['path']
@@ -179,6 +214,12 @@ def check():
                 failures.append(f'Original asset/API/base file changed: {entry["path"]}')
     text_count = 0
     for filename, expected in manifest['pages'].items():
+        try:
+            expected, count = approved_headline(filename, expected, overrides.get('pages', {}).get(filename))
+            approved_pages += bool(count)
+            approved_fragments += count
+        except (KeyError, ValueError) as error:
+            failures.append(f'{filename}: invalid approved headline override: {error}')
         actual = page_snapshot(ROOT / filename)
         for key in ('title', 'canonical', 'h1'):
             if actual[key] != expected[key]:
@@ -199,7 +240,8 @@ def check():
         for failure in failures:
             print(f'FAIL: {failure}', file=sys.stderr)
         return 1
-    print(f'PASS: {len(manifest["files"])} source files present; {exact} assets/API/base files unchanged; {len(manifest["pages"])} pages preserve original SEO, headings, schemas, links, forms, anchors and {text_count} bilingual text blocks.')
+    print(f'PASS: {len(manifest["files"])} source files present; {exact} assets/API/base files unchanged; {len(manifest["pages"])} pages checked against original SEO and content with {approved_pages} approved H1 copy change ({approved_fragments} text fragments).')
+    print(f'{text_count} bilingual blocks checked; all other headings, meaningful body text, schemas, links, forms and anchors retain their original requirements.')
     print('Staging indexing protection is verified separately by HTTP tests. Live rankings and live deployment parity are not asserted.')
     return 0
 
