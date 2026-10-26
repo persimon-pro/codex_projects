@@ -9,6 +9,7 @@
     "prestart": "npm run build",
     "predev": "npm run build",
     "test:e2e": "playwright test",
+    "check:source": "python3 scripts/check-source-parity.py",
     "preview:export": "npm run build && node scripts/export-preview.js"
   },
   "dependencies": {

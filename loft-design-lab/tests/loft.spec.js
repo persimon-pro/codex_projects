@@ -306,8 +306,9 @@ test('service clean URLs return their own pages', async ({ page, request }) => {
     expect(response.status(), pathname).toBe(200);
     expect(response.headers()['content-type'], pathname).toContain('text/html');
     const html = await response.text();
-    expect(html, pathname).toContain('<meta name="robots" content="noindex, nofollow">');
-    expect(html, pathname).not.toMatch(/<link\b[^>]*\brel=["']canonical["']/i);
+    expect(response.headers()['x-robots-tag'], pathname).toBe('noindex, nofollow');
+    expect(html, pathname).toMatch(/<meta name="robots" content="index, follow[^\"]*">/);
+    expect(html, pathname).toContain(`<link rel="canonical" href="https://www.loft.tj${pathname}">`);
   }
 });
 

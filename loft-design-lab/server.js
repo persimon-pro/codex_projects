@@ -20,6 +20,15 @@ app.use((req, res, next) => {
   next();
 });
 
+// Keep the original canonical host redirect ready for a later domain migration.
+app.use((req, res, next) => {
+  const host = req.headers.host || '';
+  if (host === 'loft.tj') {
+    return res.redirect(301, `https://www.loft.tj${req.url}`);
+  }
+  next();
+});
+
 // Security middleware to prevent serving sensitive system/backend files
 app.use((req, res, next) => {
   const forbiddenFiles = ['.env', 'server.js', 'local-server.js', 'subscribers.json', 'package.json', 'package-lock.json', '.gitignore'];

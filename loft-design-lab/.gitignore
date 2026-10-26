@@ -24,7 +24,13 @@ subscribers.json
 assets/js/loft-experience.js
 assets/js/loft-cinema.js
 assets/js/loft-cinema.css
+assets/js/loft-pages.js
+assets/js/loft-pages.css
 assets/js/fonts/
 test-results/
 playwright-report/
 preview/
+
+# Local Python verification cache
+__pycache__/
+*.pyc

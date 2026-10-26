@@ -1,2 +1,9 @@
+# https://www.robotstxt.org/robotstxt.html
 User-agent: *
-Disallow: /
+Allow: /
+Disallow: /api/
+Disallow: /subscribers.json
+
+# Host & Sitemap
+Host: https://www.loft.tj
+Sitemap: https://www.loft.tj/sitemap.xml
