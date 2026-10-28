@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -707,7 +707,7 @@
       if(btnEnMob) btnEnMob.classList.toggle('active', lang === 'en');
       if(btnRuMob) btnRuMob.classList.toggle('active', lang === 'ru');
       
-      localStorage.setItem('lang', lang);
+      try { localStorage.setItem('lang', lang); } catch (_) {}
 
       // Adjust placeholder texts based on language
       const msgTextarea = document.getElementById('message');
@@ -720,7 +720,8 @@
       }
     }
 
-    const savedLang = localStorage.getItem('lang') || 'en';
+    let savedLang = 'ru';
+    try { savedLang = localStorage.getItem('lang') || 'ru'; } catch (_) {}
     setLang(savedLang);
 
     // Parse URL query parameters to auto-select form options
@@ -730,7 +731,7 @@
       const service = urlParams.get('service');
       const detailsArea = document.getElementById('message');
       
-      const lang = document.documentElement.lang || 'en';
+      const lang = document.documentElement.lang || 'ru';
       
       if (pkg) {
         // Auto-check corresponding service checkbox based on the package

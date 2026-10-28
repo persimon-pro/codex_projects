@@ -1,0 +1,154 @@
+{
+  "date": "2026-10-28",
+  "kind": "single-run local mobile laboratory comparison; not live Core Web Vitals or rankings",
+  "newSourceCommit": "3d9519b899e67ea77456779a2eb2fd28e37266b0",
+  "originalSourceCommit": "9eae9fe5a185f548921d98eb80909554397650a7",
+  "limits": [
+    "Both servers are local Express with no verified edge compression; Vercel transfer behavior was not measured.",
+    "All external HTTPS resource loads were blocked to respect the execution environment network policy.",
+    "The new test server deliberately returns noindex, so its Lighthouse SEO score includes that intentional crawlability failure.",
+    "No Google Search Console, live loft.tj, live Vercel or field INP data was available.",
+    "One run per version; not a controlled median benchmark."
+  ],
+  "runs": [
+    {
+      "version": "original",
+      "lighthouseVersion": "13.6.0",
+      "fetchTime": "2026-10-28T12:59:35.755Z",
+      "requestedUrl": "http://127.0.0.1:3005/",
+      "formFactor": "mobile",
+      "throttlingMethod": "simulate",
+      "throttling": {
+        "rttMs": 150,
+        "throughputKbps": 1638.4,
+        "requestLatencyMs": 562.5,
+        "downloadThroughputKbps": 1474.5600000000002,
+        "uploadThroughputKbps": 675,
+        "cpuSlowdownMultiplier": 4
+      },
+      "categories": {
+        "performance": 0.73,
+        "accessibility": 0.95,
+        "best-practices": 1,
+        "seo": 1
+      },
+      "metrics": {
+        "first-contentful-paint": 1980.8943,
+        "largest-contentful-paint": 8896.34145,
+        "speed-index": 2977.0673755823764,
+        "total-blocking-time": 3,
+        "cumulative-layout-shift": 0.05461375890639657
+      },
+      "rawReport": "release/seo-audit-2026-10-28/original-mobile.lighthouse.json",
+      "measuredTransferBytes": 1808155,
+      "teamPosterRequests": [
+        {
+          "url": "/assets/videos/team-ceo-poster.jpg",
+          "transferBytes": 265308
+        },
+        {
+          "url": "/assets/videos/team-creative-director-poster.jpg",
+          "transferBytes": 269596
+        },
+        {
+          "url": "/assets/videos/team-marketing-director-poster.jpg",
+          "transferBytes": 283814
+        },
+        {
+          "url": "/assets/videos/team-executive-director-poster.jpg",
+          "transferBytes": 310069
+        },
+        {
+          "url": "/assets/videos/team-smm-specialist-poster.jpg",
+          "transferBytes": 274379
+        }
+      ]
+    },
+    {
+      "version": "new",
+      "lighthouseVersion": "13.6.0",
+      "fetchTime": "2026-10-28T12:59:11.404Z",
+      "requestedUrl": "http://127.0.0.1:3003/",
+      "formFactor": "mobile",
+      "throttlingMethod": "simulate",
+      "throttling": {
+        "rttMs": 150,
+        "throughputKbps": 1638.4,
+        "requestLatencyMs": 562.5,
+        "downloadThroughputKbps": 1474.5600000000002,
+        "uploadThroughputKbps": 675,
+        "cpuSlowdownMultiplier": 4
+      },
+      "categories": {
+        "performance": 0.85,
+        "accessibility": 0.95,
+        "best-practices": 1,
+        "seo": 0.69
+      },
+      "metrics": {
+        "first-contentful-paint": 2416.8205,
+        "largest-contentful-paint": 2416.8205,
+        "speed-index": 5020.738288690302,
+        "total-blocking-time": 275.5,
+        "cumulative-layout-shift": 0.001009968746437588
+      },
+      "rawReport": "release/seo-audit-2026-10-28/new-mobile.lighthouse.json",
+      "measuredTransferBytes": 2761739,
+      "teamPosterRequests": [
+        {
+          "url": "/assets/videos/team-ceo-poster.jpg",
+          "transferBytes": 265341
+        },
+        {
+          "url": "/assets/videos/team-creative-director-poster.jpg",
+          "transferBytes": 269629
+        },
+        {
+          "url": "/assets/videos/team-marketing-director-poster.jpg",
+          "transferBytes": 283847
+        },
+        {
+          "url": "/assets/videos/team-executive-director-poster.jpg",
+          "transferBytes": 310102
+        },
+        {
+          "url": "/assets/videos/team-smm-specialist-poster.jpg",
+          "transferBytes": 274412
+        }
+      ]
+    },
+    {
+      "version": "optimized",
+      "lighthouseVersion": "13.6.0",
+      "fetchTime": "2026-10-28T13:14:21.459Z",
+      "requestedUrl": "http://127.0.0.1:3003/",
+      "formFactor": "mobile",
+      "throttlingMethod": "simulate",
+      "throttling": {
+        "rttMs": 150,
+        "throughputKbps": 1638.4,
+        "requestLatencyMs": 562.5,
+        "downloadThroughputKbps": 1474.5600000000002,
+        "uploadThroughputKbps": 675,
+        "cpuSlowdownMultiplier": 4
+      },
+      "categories": {
+        "performance": 0.88,
+        "accessibility": 0.95,
+        "best-practices": 1,
+        "seo": 0.69
+      },
+      "metrics": {
+        "first-contentful-paint": 2407.3023000000003,
+        "largest-contentful-paint": 2407.3023000000003,
+        "speed-index": 2894.9503914046327,
+        "total-blocking-time": 296.5,
+        "cumulative-layout-shift": 0.001009968746437588
+      },
+      "rawReport": "release/seo-audit-2026-10-28/optimized-mobile.lighthouse.json",
+      "changes": "Native loading=lazy on the five original team videos; explicit dimensions on introductory logo and hero fallback. No visual redesign or original media modification.",
+      "measuredTransferBytes": 1358534,
+      "teamPosterRequests": []
+    }
+  ]
+}

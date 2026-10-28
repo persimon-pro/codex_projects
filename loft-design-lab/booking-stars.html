@@ -991,9 +991,10 @@
       if(btnRu) btnRu.classList.toggle('active', lang === 'ru');
       if(btnEnMob) btnEnMob.classList.toggle('active', lang === 'en');
       if(btnRuMob) btnRuMob.classList.toggle('active', lang === 'ru');
-      localStorage.setItem('lang', lang);
+      try { localStorage.setItem('lang', lang); } catch (_) {}
     }
-    const savedLang = localStorage.getItem('lang') || 'ru';
+    let savedLang = 'ru';
+    try { savedLang = localStorage.getItem('lang') || 'ru'; } catch (_) {}
     setLang(savedLang);
 
     const burger = document.getElementById('burger');

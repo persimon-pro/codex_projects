@@ -30,6 +30,7 @@ assets/js/fonts/
 test-results/
 playwright-report/
 preview/
+release/
 
 # Local Python verification cache
 __pycache__/

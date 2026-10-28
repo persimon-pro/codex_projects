@@ -10,6 +10,8 @@
     "predev": "npm run build",
     "test:e2e": "playwright test",
     "check:source": "python3 scripts/check-source-parity.py",
+    "release:prepare": "npm run build && node scripts/prepare-production.mjs --profile production --origin https://www.loft.tj",
+    "release:check": "node scripts/preflight-production.mjs",
     "preview:export": "npm run build && node scripts/export-preview.js"
   },
   "dependencies": {
@@ -27,6 +29,8 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",
+    "@vercel/routing-utils": "6.6.0",
+    "ajv": "8.17.1",
     "nodemon": "^3.1.0"
   },
   "author": "Loft Creative House",
