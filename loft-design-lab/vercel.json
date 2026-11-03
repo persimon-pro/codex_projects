@@ -1,15 +1,15 @@
 {
   "cleanUrls": true,
-  "buildCommand": "npm run build",
+  "buildCommand": "node scripts/build-release-on-vercel.mjs",
   "functions": {
     "server.js": {
-      "includeFiles": "{assets/**,fonts/**,logo/**,*.css,favicon.ico,favicon.png,apple-touch-icon.png,robots.txt,sitemap.xml,*.html}"
+      "includeFiles": "{assets/**,fonts/**,logo/**,*.css,favicon.ico,favicon.png,apple-touch-icon.png,robots.txt,sitemap.xml,*.html,production-policy.cjs,production-profile.json}"
     },
     "index.js": {
-      "includeFiles": "{assets/**,fonts/**,logo/**,*.css,favicon.ico,favicon.png,apple-touch-icon.png,robots.txt,sitemap.xml,*.html}"
+      "includeFiles": "{assets/**,fonts/**,logo/**,*.css,favicon.ico,favicon.png,apple-touch-icon.png,robots.txt,sitemap.xml,*.html,production-policy.cjs,production-profile.json}"
     },
     "app.js": {
-      "includeFiles": "{assets/**,fonts/**,logo/**,*.css,favicon.ico,favicon.png,apple-touch-icon.png,robots.txt,sitemap.xml,*.html}"
+      "includeFiles": "{assets/**,fonts/**,logo/**,*.css,favicon.ico,favicon.png,apple-touch-icon.png,robots.txt,sitemap.xml,*.html,production-policy.cjs,production-profile.json}"
     },
     "api/*.js": {
       "maxDuration": 15
@@ -18,39 +18,440 @@
   "headers": [
     {
       "source": "/(.*)",
-      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+      "missing": [
+        {
+          "type": "host",
+          "value": "^www\\.loft\\.tj$"
+        }
+      ],
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
     },
     {
       "source": "/assets/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=2592000, stale-while-revalidate=86400" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=2592000, stale-while-revalidate=86400"
+        }
       ]
     },
     {
       "source": "/fonts/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
     },
     {
       "source": "/logo/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=2592000, stale-while-revalidate=86400" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=2592000, stale-while-revalidate=86400"
+        }
       ]
     },
     {
       "source": "/styles.css",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=604800"
+        }
+      ]
+    },
+    {
+      "source": "/api/:path*",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/src/:path*",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/scripts/:path*",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/migration/:path*",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/preview/:path*",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/app.js",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/index.js",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/server.js",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/production-policy.cjs",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/production-profile.json",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/release-manifest.json",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/production",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/smm",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/branding",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/web",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/booking-stars",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/order",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/robots.txt",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/sitemap.xml",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/sitemap",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/loft-3d.css",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/loft-cinema.css",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/loft-pages.css",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/styles.css",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/assets/js/loft-cinema.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/assets/js/loft-pages.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/assets/js/loft-experience.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/assets/js/loft-cinema.css",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/assets/js/loft-pages.css",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
       ]
     }
   ],
   "rewrites": [
-    { "source": "/order", "destination": "/order.html" },
-    { "source": "/booking-stars", "destination": "/booking-stars.html" },
-    { "source": "/production", "destination": "/production.html" },
-    { "source": "/smm", "destination": "/smm.html" },
-    { "source": "/branding", "destination": "/branding.html" },
-    { "source": "/web", "destination": "/web.html" }
+    {
+      "source": "/order",
+      "destination": "/order.html"
+    },
+    {
+      "source": "/booking-stars",
+      "destination": "/booking-stars.html"
+    },
+    {
+      "source": "/production",
+      "destination": "/production.html"
+    },
+    {
+      "source": "/smm",
+      "destination": "/smm.html"
+    },
+    {
+      "source": "/branding",
+      "destination": "/branding.html"
+    },
+    {
+      "source": "/web",
+      "destination": "/web.html"
+    }
+  ],
+  "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "^loft\\.tj$"
+        }
+      ],
+      "destination": "https://www.loft.tj/",
+      "permanent": true
+    },
+    {
+      "source": "/production",
+      "has": [
+        {
+          "type": "host",
+          "value": "^loft\\.tj$"
+        }
+      ],
+      "destination": "https://www.loft.tj/production",
+      "permanent": true
+    },
+    {
+      "source": "/smm",
+      "has": [
+        {
+          "type": "host",
+          "value": "^loft\\.tj$"
+        }
+      ],
+      "destination": "https://www.loft.tj/smm",
+      "permanent": true
+    },
+    {
+      "source": "/branding",
+      "has": [
+        {
+          "type": "host",
+          "value": "^loft\\.tj$"
+        }
+      ],
+      "destination": "https://www.loft.tj/branding",
+      "permanent": true
+    },
+    {
+      "source": "/web",
+      "has": [
+        {
+          "type": "host",
+          "value": "^loft\\.tj$"
+        }
+      ],
+      "destination": "https://www.loft.tj/web",
+      "permanent": true
+    },
+    {
+      "source": "/booking-stars",
+      "has": [
+        {
+          "type": "host",
+          "value": "^loft\\.tj$"
+        }
+      ],
+      "destination": "https://www.loft.tj/booking-stars",
+      "permanent": true
+    },
+    {
+      "source": "/order",
+      "has": [
+        {
+          "type": "host",
+          "value": "^loft\\.tj$"
+        }
+      ],
+      "destination": "https://www.loft.tj/order",
+      "permanent": true
+    },
+    {
+      "source": "/index",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/index.html",
+      "destination": "/",
+      "permanent": true
+    }
   ]
 }
