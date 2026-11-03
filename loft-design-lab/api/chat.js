@@ -70,10 +70,9 @@ Loft Creative House — ведущее креативное агентство �
 • Стоимость рассчитывается индивидуально под сценарий и задачи заказчика.
 
 3. SMM & PERFORMANCE-МАРКЕТИНГ (https://www.loft.tj/smm):
-• LIGHT (6 000 c/мес): 5 Reels, 5 фото, 30 Stories, фирменные обложки, таргетированная реклама, аналитика.
-• STANDARD (8 000 c/мес — Хит продаж): 8 Reels, 8 фото, 30 Stories, дизайн обложек, настройка таргета, ежемесячный отчет.
-• STANDARD+ (9 000 c/мес): 10 Reels, 8 публикаций, 35 Stories.
-• PREMIUM (12 000 c/мес): 12 Reels, 10 фото, 30 Stories, таргет, работа с инфлюенсерами, спецпроекты.
+• LIGHT (8 000 c/мес): 5 Reels, 5 фото, 30 Stories, фирменные обложки, аналитика.
+• STANDARD (12 000 c/мес — Хит продаж): 8 Reels, 8 фото, 30 Stories, дизайн обложек, ежемесячный отчет.
+• PREMIUM (15 000 c/мес): 12 Reels, 10 фото, 30 Stories, работа с инфлюенсерами, спецпроекты.
 
 4. БРЕНДИНГ, SEO & ДИЗАЙН (https://www.loft.tj/branding):
 • START (8 500 c): Экспресс-аудит, логотип (3 концепта), гайдлайн, Landing Page (до 5 блоков), базовое SEO, 2GIS и Google Карты, Telegram-уведомления.
@@ -349,9 +348,9 @@ function generateFallbackResponse(messages) {
 
   if (q.match(/(smm|смм|рилс|reels|инста|инстаграм|stories|сторис|пост|таргет)/i)) {
     return "Комплексное ведение и рост в соцсетях (**SMM**):\n\n" +
-      "• **LIGHT (6 000 c/мес)** — 5 Reels, 5 фото, 30 Stories, фирменные обложки, таргет, аналитика.\n" +
-      "• **STANDARD (8 000 c/мес, Топ выбор)** — 8 Reels, 8 фото, 30 Stories, дизайн обложек, настройка рекламы, ежемесячный отчет.\n" +
-      "• **PREMIUM (12 000 c/мес)** — 12 Reels, 10 фото, 30 Stories, таргет, инфлюенс-маркетинг.\n\n" +
+      "• **LIGHT (8 000 c/мес)** — 5 Reels, 5 фото, 30 Stories, фирменные обложки, аналитика.\n" +
+      "• **STANDARD (12 000 c/мес, Топ выбор)** — 8 Reels, 8 фото, 30 Stories, дизайн обложек, ежемесячный отчет.\n" +
+      "• **PREMIUM (15 000 c/мес)** — 12 Reels, 10 фото, 30 Stories, инфлюенс-маркетинг.\n\n" +
       "Хотите запустить SMM со следующей недели?";
   }
 
@@ -399,7 +398,7 @@ function generateFallbackResponse(messages) {
 
   if (q.match(/(цен|стоимост|прайс|скольк|расчет|смет)/i)) {
     return "Прайс-лист на ключевые направления **Loft Creative House**:\n\n" +
-      "• **SMM-ведение:** от 6 000 до 12 000 с/мес\n" +
+      "• **SMM-ведение:** от 8 000 до 15 000 с/мес\n" +
       "• **Брендинг & SEO:** от 8 500 до 32 000 с\n" +
       "• **Сайты и разработка:** от 5 000 до 10 000 с\n" +
       "• **Организация ивентов:** от 11 000 до 50 000 с\n" +
@@ -435,9 +434,9 @@ function generateQuickChips(botReply, messages) {
 
   if (replyLower.includes('smm') || replyLower.includes('reels') || replyLower.includes('light')) {
     return [
-      { label: '📝 SMM LIGHT (6 000 c)', action: 'order:SMM LIGHT' },
-      { label: '⭐ SMM STANDARD (8 000 c)', action: 'order:SMM STANDARD' },
-      { label: '🔥 SMM PREMIUM (12 000 c)', action: 'order:SMM PREMIUM' },
+      { label: '📝 SMM LIGHT (8 000 c)', action: 'order:SMM LIGHT' },
+      { label: '⭐ SMM STANDARD (12 000 c)', action: 'order:SMM STANDARD' },
+      { label: '🔥 SMM PREMIUM (15 000 c)', action: 'order:SMM PREMIUM' },
       { label: '🎬 Видеопродакшн', action: 'topic:video' }
     ];
   }

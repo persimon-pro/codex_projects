@@ -199,6 +199,9 @@ def approved_headline(filename, expected, override):
 def check():
     manifest = json.loads(MANIFEST.read_text())
     overrides = json.loads(CONTENT_OVERRIDES.read_text())
+    amendments = json.loads((ROOT / 'migration' / 'approved-content-updates.json').read_text())
+    if amendments.get('schemaVersion') != 1 or not amendments.get('approvedOn') or not amendments.get('reason'):
+        raise ValueError('Content updates require a dated, documented user approval')
     failures = []
     if overrides.get('schemaVersion') != 1 or set(overrides.get('pages', {})) - {'index.html'}:
         failures.append('Content overrides must use schema version 1 and only the homepage')
@@ -210,12 +213,34 @@ def check():
             failures.append(f'Missing source file: {entry["path"]}')
         elif entry['enforceExact']:
             exact += 1
-            if digest(path) != entry['sha256']:
+            approved_file = amendments.get('files', {}).get(entry['path'])
+            expected_digest = entry['sha256']
+            if approved_file:
+                if approved_file['fromSha256'] != expected_digest:
+                    raise ValueError('Approved file update must match the original source digest')
+                expected_digest = approved_file['toSha256']
+            if digest(path) != expected_digest:
                 failures.append(f'Original asset/API/base file changed: {entry["path"]}')
     text_count = 0
     for filename, expected in manifest['pages'].items():
         try:
             expected, count = approved_headline(filename, expected, overrides.get('pages', {}).get(filename))
+            expected = deepcopy(expected)
+            for key, changes in amendments.get('pages', {}).get(filename, {}).items():
+                if key == 'bodyTextNodes':
+                    for text, counts in changes.items():
+                        if expected[key].get(text, 0) != counts['from']:
+                            raise ValueError('Approved text count does not match original: ' + text)
+                        if counts['to']:
+                            expected[key][text] = counts['to']
+                        else:
+                            expected[key].pop(text, None)
+                elif key in ('languageBlocks', 'schemas'):
+                    for value in changes['remove']:
+                        expected[key].remove(value)
+                    expected[key].extend(changes['add'])
+                else:
+                    raise ValueError('Unapproved snapshot field: ' + key)
             approved_pages += bool(count)
             approved_fragments += count
         except (KeyError, ValueError) as error:
@@ -240,8 +265,8 @@ def check():
         for failure in failures:
             print(f'FAIL: {failure}', file=sys.stderr)
         return 1
-    print(f'PASS: {len(manifest["files"])} source files present; {exact} assets/API/base files unchanged; {len(manifest["pages"])} pages checked against original SEO and content with {approved_pages} approved H1 copy change ({approved_fragments} text fragments).')
-    print(f'{text_count} bilingual blocks checked; all other headings, meaningful body text, schemas, links, forms and anchors retain their original requirements.')
+    print(f'PASS: {len(manifest["files"])} source files present; {exact} assets/API/base files checked against original or explicitly approved digests; {len(manifest["pages"])} pages checked with {approved_pages} approved H1 copy change ({approved_fragments} text fragments).')
+    print(f'{text_count} bilingual blocks checked; dated approved content updates applied without rewriting the original snapshot. All other original requirements retained.')
     print('Staging indexing protection is verified separately by HTTP tests. Live rankings and live deployment parity are not asserted.')
     return 0
 
